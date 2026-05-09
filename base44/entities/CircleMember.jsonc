@@ -1,0 +1,54 @@
+{
+  "name": "CircleMember",
+  "type": "object",
+  "properties": {
+    "circle_id": {
+      "type": "string",
+      "description": "Reference to circle"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Member email"
+    },
+    "username": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "profile_image": {
+      "type": "string",
+      "description": "Profile image URL"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "host",
+        "member"
+      ],
+      "default": "member"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "free",
+        "busy",
+        "maybe",
+        "unset"
+      ],
+      "default": "unset",
+      "description": "Tonight's availability"
+    },
+    "availability_note": {
+      "type": "string",
+      "description": "Note for maybe status"
+    },
+    "availability_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the availability setting"
+    }
+  },
+  "required": [
+    "circle_id",
+    "user_email"
+  ]
+}

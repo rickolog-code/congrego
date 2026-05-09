@@ -1,0 +1,77 @@
+{
+  "name": "Post",
+  "type": "object",
+  "properties": {
+    "circle_id": {
+      "type": "string",
+      "description": "Circle this post belongs to"
+    },
+    "author_email": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "author_image": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Post text content"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Optional attached image"
+    },
+    "post_type": {
+      "type": "string",
+      "enum": [
+        "regular",
+        "calendar_event",
+        "vote"
+      ],
+      "default": "regular"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Linked calendar event ID"
+    },
+    "vote_target_email": {
+      "type": "string",
+      "description": "For vote posts - email of user being voted on"
+    },
+    "upvotes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of users who upvoted"
+    },
+    "downvotes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of users who downvoted"
+    },
+    "yes_votes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "For vote posts"
+    },
+    "no_votes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "For vote posts"
+    }
+  },
+  "required": [
+    "circle_id",
+    "author_email",
+    "content"
+  ]
+}

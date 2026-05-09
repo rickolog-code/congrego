@@ -1,0 +1,42 @@
+{
+  "name": "CalendarEvent",
+  "type": "object",
+  "properties": {
+    "circle_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "event_time": {
+      "type": "string",
+      "description": "Time string e.g. 7:00 PM"
+    },
+    "location": {
+      "type": "string"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "creator_name": {
+      "type": "string"
+    },
+    "post_id": {
+      "type": "string",
+      "description": "Auto-generated post ID"
+    }
+  },
+  "required": [
+    "circle_id",
+    "title",
+    "event_date",
+    "creator_email"
+  ]
+}

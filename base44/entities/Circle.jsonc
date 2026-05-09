@@ -1,0 +1,44 @@
+{
+  "name": "Circle",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the circle"
+    },
+    "description": {
+      "type": "string",
+      "description": "Circle description"
+    },
+    "color": {
+      "type": "string",
+      "description": "Theme color hex code"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Circle profile image URL"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "Current invite code"
+    },
+    "invite_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invite code expires"
+    },
+    "host_email": {
+      "type": "string",
+      "description": "Email of the circle host/admin"
+    },
+    "member_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of members"
+    }
+  },
+  "required": [
+    "name",
+    "host_email"
+  ]
+}
