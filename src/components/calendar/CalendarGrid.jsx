@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CalendarGrid({ events = [], onDateSelect, selectedDate }) {
+export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -18,8 +18,17 @@ export default function CalendarGrid({ events = [], onDateSelect, selectedDate }
     d = addDays(d, 1);
   }
 
-  const getEventsForDay = (day) =>
-    events.filter((e) => isSameDay(new Date(e.event_date), day));
+  // Check if a day has an event (using local date parsing to avoid timezone offset)
+  const getDotsForDay = (day) => {
+    const key = format(day, 'yyyy-MM-dd');
+    return dotsByDate[key] ? Array.from(dotsByDate[key]) : [];
+  };
+
+  // Check if a day has a suggested event (any event on that day = hatched)
+  const hasEvent = (day) => {
+    const key = format(day, 'yyyy-MM-dd');
+    return !!dotsByDate[key] && dotsByDate[key].size > 0;
+  };
 
   return (
     <div className="bg-card rounded-3xl border border-border p-4 shadow-sm">
@@ -42,9 +51,9 @@ export default function CalendarGrid({ events = [], onDateSelect, selectedDate }
 
       {/* Day labels */}
       <div className="grid grid-cols-7 mb-2">
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-          <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground py-1">
-            {d}
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((label) => (
+          <div key={label} className="text-center text-[10px] font-semibold text-muted-foreground py-1">
+            {label}
           </div>
         ))}
       </div>
@@ -52,17 +61,18 @@ export default function CalendarGrid({ events = [], onDateSelect, selectedDate }
       {/* Days grid */}
       <div className="grid grid-cols-7 gap-0.5">
         {days.map((day, idx) => {
-          const dayEvents = getEventsForDay(day);
+          const dots = getDotsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isToday = isSameDay(day, new Date());
           const isSelected = selectedDate && isSameDay(day, selectedDate);
+          const hasEvents = hasEvent(day);
 
           return (
             <motion.button
               key={idx}
               whileTap={{ scale: 0.9 }}
               onClick={() => onDateSelect(day)}
-              className={`relative h-10 rounded-xl text-xs font-medium flex flex-col items-center justify-center transition-all ${
+              className={`relative h-10 rounded-xl text-xs font-medium flex flex-col items-center justify-center transition-all overflow-hidden ${
                 !isCurrentMonth
                   ? 'text-muted-foreground/30'
                   : isSelected
@@ -72,15 +82,28 @@ export default function CalendarGrid({ events = [], onDateSelect, selectedDate }
                   : 'text-foreground hover:bg-muted'
               }`}
             >
+              {/* Hatch pattern for days with events */}
+              {hasEvents && !isSelected && isCurrentMonth && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none">
+                  <defs>
+                    <pattern id={`hatch-${idx}`} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+                      <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" strokeWidth="1.5" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill={`url(#hatch-${idx})`} />
+                </svg>
+              )}
+
               {format(day, 'd')}
-              {dayEvents.length > 0 && (
+
+              {/* Colored dots per user */}
+              {dots.length > 0 && (
                 <div className="flex gap-0.5 mt-0.5">
-                  {dayEvents.slice(0, 3).map((_, i) => (
+                  {dots.slice(0, 3).map((color, i) => (
                     <div
                       key={i}
-                      className={`w-1 h-1 rounded-full ${
-                        isSelected ? 'bg-primary-foreground' : 'bg-primary'
-                      }`}
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: isSelected ? 'white' : color }}
                     />
                   ))}
                 </div>

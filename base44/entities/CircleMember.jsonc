@@ -45,6 +45,11 @@
       "type": "string",
       "format": "date",
       "description": "Date of the availability setting"
+    },
+    "calendar_synced": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user has synced their calendar"
     }
   },
   "required": [

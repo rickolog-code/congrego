@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { format } from 'date-fns';
-import { Settings, Plus, UserPlus } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import CircleSwitcher from '@/components/home/CircleSwitcher';
 import AvailabilityCard from '@/components/home/AvailabilityCard';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
 import JoinCircleModal from '@/components/circles/JoinCircleModal';
+import HeaderMenu from '@/components/home/HeaderMenu';
 
 export default function Home() {
   const { user, activeCircle, activeCircleId, myMembership, circles } = useCircle();
@@ -107,9 +107,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-        <Link to="/settings" className="p-2.5 rounded-xl bg-card border border-border hover:bg-muted transition-colors">
-          <Settings className="w-5 h-5 text-muted-foreground" />
-        </Link>
+        <HeaderMenu hasRedDot={false} />
       </div>
 
       {/* Circle Switcher */}

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import ProfileImageViewer from '@/components/profile/ProfileImageViewer';
 
 const statusColors = {
   free: 'bg-green-500 text-white border-green-400',
@@ -16,6 +17,7 @@ const statusColors = {
 export default function AvailabilityCard({ member, isMe, onUpdateAvailability }) {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showReadNote, setShowReadNote] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [note, setNote] = useState(member.availability_note || '');
   const today = format(new Date(), 'yyyy-MM-dd');
   const isToday = member.availability_date === today;
@@ -44,7 +46,7 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3 p-3 bg-card rounded-2xl border border-border shadow-sm"
       >
-        <div className="relative">
+        <button onClick={() => setShowProfile(true)} className="relative flex-shrink-0">
           {member.profile_image ? (
             <img src={member.profile_image} alt="" className="w-11 h-11 rounded-full object-cover ring-2 ring-border" />
           ) : (
@@ -59,7 +61,7 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
               <span className="text-[8px]">👑</span>
             </div>
           )}
-        </div>
+        </button>
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">
@@ -111,6 +113,14 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
           <Button onClick={handleSaveNote} className="rounded-xl">Save</Button>
         </DialogContent>
       </Dialog>
+
+      {/* Profile viewer */}
+      <ProfileImageViewer
+        open={showProfile}
+        onOpenChange={setShowProfile}
+        imageUrl={member.profile_image}
+        name={member.username || member.user_email?.split('@')[0]}
+      />
 
       {/* Maybe note modal - read */}
       <Dialog open={showReadNote} onOpenChange={setShowReadNote}>

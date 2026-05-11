@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock } from 'lucide-react';
+import TimePicker from '@/components/calendar/TimePicker';
 
 export default function CreateEventModal({ open, onOpenChange, selectedDate }) {
   const { user, activeCircleId, myMembership } = useCircle();
@@ -17,6 +18,7 @@ export default function CreateEventModal({ open, onOpenChange, selectedDate }) {
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim() || !selectedDate) return;
@@ -25,7 +27,6 @@ export default function CreateEventModal({ open, onOpenChange, selectedDate }) {
     const eventDate = format(selectedDate, 'yyyy-MM-dd');
     const authorName = myMembership?.username || user.full_name || user.email.split('@')[0];
 
-    // Create calendar event
     const calEvent = await base44.entities.CalendarEvent.create({
       circle_id: activeCircleId,
       title: title.trim(),
@@ -37,7 +38,6 @@ export default function CreateEventModal({ open, onOpenChange, selectedDate }) {
       creator_name: authorName,
     });
 
-    // Auto-generate event post
     const postContent = `📅 **${title.trim()}**\n${format(selectedDate, 'EEEE, MMMM d')}${time ? ` at ${time}` : ''}${location ? `\n📍 ${location}` : ''}${description ? `\n\n${description}` : ''}`;
 
     await base44.entities.Post.create({
@@ -63,47 +63,62 @@ export default function CreateEventModal({ open, onOpenChange, selectedDate }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl max-w-sm mx-auto">
-        <DialogHeader>
-          <DialogTitle className="font-nunito">
-            New Event — {selectedDate ? format(selectedDate, 'MMM d') : ''}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <Input
-            placeholder="Event title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="rounded-xl"
-          />
-          <Textarea
-            placeholder="Description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="rounded-xl"
-          />
-          <Input
-            placeholder="Time (e.g. 7:00 PM)"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="rounded-xl"
-          />
-          <Input
-            placeholder="Location (optional)"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="rounded-xl"
-          />
-          <Button
-            onClick={handleSubmit}
-            disabled={!title.trim() || loading}
-            className="w-full rounded-xl h-11"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Event'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="rounded-3xl max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="font-nunito">
+              New Event — {selectedDate ? format(selectedDate, 'MMM d') : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Event title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="rounded-xl"
+            />
+            <Textarea
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="rounded-xl"
+            />
+
+            {/* Time selector */}
+            <button
+              type="button"
+              onClick={() => setShowTimePicker(true)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-input bg-transparent text-sm hover:bg-muted transition-colors text-left"
+            >
+              <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className={time ? 'text-foreground font-medium' : 'text-muted-foreground'}>
+                {time || 'Select time'}
+              </span>
+            </button>
+
+            <Input
+              placeholder="Location (optional)"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="rounded-xl"
+            />
+            <Button
+              onClick={handleSubmit}
+              disabled={!title.trim() || loading}
+              className="w-full rounded-xl h-11"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Event'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <TimePicker
+        open={showTimePicker}
+        onOpenChange={setShowTimePicker}
+        onConfirm={(t) => setTime(t)}
+      />
+    </>
   );
 }

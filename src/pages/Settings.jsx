@@ -9,12 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft, LogOut, UserPlus, Plus, Copy, Check,
-  Pencil, Trash2, Users, Crown, Image as ImageIcon, Loader2,
+  Pencil, Trash2, Users, Crown, Loader2, Bell, CalendarDays,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
 import JoinCircleModal from '@/components/circles/JoinCircleModal';
+import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
 
 export default function Settings() {
   const { user, activeCircle, activeCircleId, myMembership, refreshCircles } = useCircle();
@@ -23,9 +24,14 @@ export default function Settings() {
   const [showJoin, setShowJoin] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newUsername, setNewUsername] = useState('');
+  const [editingCircleName, setEditingCircleName] = useState(false);
+  const [newCircleName, setNewCircleName] = useState('');
   const [copied, setCopied] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [showCircleImagePicker, setShowCircleImagePicker] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState('Notification' in window && Notification.permission === 'granted');
+  const [calendarSynced, setCalendarSynced] = useState(myMembership?.calendar_synced || false);
 
   const isHost = myMembership?.role === 'host';
 
@@ -43,15 +49,24 @@ export default function Settings() {
     setEditingName(false);
   };
 
-  const handleUploadProfileImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !myMembership) return;
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.CircleMember.update(myMembership.id, { profile_image: file_url });
+  const handleUpdateCircleName = async () => {
+    if (!newCircleName.trim() || !activeCircle) return;
+    await base44.entities.Circle.update(activeCircle.id, { name: newCircleName.trim() });
+    refreshCircles();
+    setEditingCircleName(false);
+  };
+
+  const handleSelectProfileImage = async (url) => {
+    if (!myMembership) return;
+    await base44.entities.CircleMember.update(myMembership.id, { profile_image: url });
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
-    setUploading(false);
+  };
+
+  const handleSelectCircleImage = async (url) => {
+    if (!activeCircle) return;
+    await base44.entities.Circle.update(activeCircle.id, { image_url: url });
+    refreshCircles();
   };
 
   const handleGenerateInvite = async () => {
@@ -88,7 +103,6 @@ export default function Settings() {
 
   const handleRemoveMember = async (member) => {
     if (!isHost || !activeCircle) return;
-    // Create a vote post
     await base44.entities.Post.create({
       circle_id: activeCircleId,
       author_email: user.email,
@@ -106,12 +120,33 @@ export default function Settings() {
     setShowMembers(false);
   };
 
+  const handleEnableNotifications = async () => {
+    if (!('Notification' in window)) return;
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      setNotifEnabled(true);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    // Request calendar access — on mobile this opens system permission
+    // For now we mark as synced in their membership record
+    if (!myMembership) return;
+    await base44.entities.CircleMember.update(myMembership.id, { calendar_synced: true });
+    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+    setCalendarSynced(true);
+  };
+
   const inviteExpired = activeCircle?.invite_expires_at
     ? new Date(activeCircle.invite_expires_at) < new Date()
     : true;
 
   return (
-    <div className="px-4 pt-6 pb-24 space-y-6">
+    <div className="px-4 pt-6 pb-24 space-y-6 max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link to="/" className="p-2 rounded-xl bg-card border border-border hover:bg-muted transition-colors">
@@ -124,7 +159,10 @@ export default function Settings() {
       <div className="bg-card rounded-2xl border border-border p-4 space-y-4">
         <h3 className="text-sm font-bold text-muted-foreground">Profile</h3>
         <div className="flex items-center gap-4">
-          <label className="relative cursor-pointer group">
+          <button
+            onClick={() => setShowProfilePicker(true)}
+            className="relative group"
+          >
             {myMembership?.profile_image ? (
               <img src={myMembership.profile_image} alt="" className="w-16 h-16 rounded-2xl object-cover" />
             ) : (
@@ -134,11 +172,10 @@ export default function Settings() {
                 </span>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/30 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              {uploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <ImageIcon className="w-4 h-4 text-white" />}
+            <div className="absolute inset-0 bg-black/30 rounded-2xl opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center">
+              <Pencil className="w-4 h-4 text-white" />
             </div>
-            <Input type="file" accept="image/*" className="hidden" onChange={handleUploadProfileImage} />
-          </label>
+          </button>
           <div className="flex-1">
             {editingName ? (
               <div className="flex gap-2">
@@ -163,6 +200,28 @@ export default function Settings() {
             <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
         </div>
+
+        {/* Notifications & Calendar Prompts */}
+        <div className="space-y-2 pt-1">
+          {!notifEnabled && (
+            <button
+              onClick={handleEnableNotifications}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-left"
+            >
+              <Bell className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span className="text-xs font-medium text-amber-800">Enable notifications to make the app more useful</span>
+            </button>
+          )}
+          {!calendarSynced && (
+            <button
+              onClick={handleSyncCalendar}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-left"
+            >
+              <CalendarDays className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span className="text-xs font-medium text-blue-800">Sync your calendar so people know when you're busy</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Circle Section */}
@@ -173,14 +232,54 @@ export default function Settings() {
             {isHost && <Crown className="w-4 h-4 text-amber-500" />}
           </div>
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
-              style={{ background: activeCircle.color || 'hsl(var(--primary))' }}
-            >
-              {activeCircle.name?.[0]?.toUpperCase()}
-            </div>
-            <div>
-              <p className="font-semibold text-sm">{activeCircle.name}</p>
+            {/* Circle image — clickable for host */}
+            {isHost ? (
+              <button onClick={() => setShowCircleImagePicker(true)} className="relative group">
+                {activeCircle.image_url ? (
+                  <img src={activeCircle.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+                    style={{ background: activeCircle.color || 'hsl(var(--primary))' }}
+                  >
+                    {activeCircle.name?.[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Pencil className="w-3 h-3 text-white" />
+                </div>
+              </button>
+            ) : (
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
+                style={{ background: activeCircle.color || 'hsl(var(--primary))' }}
+              >
+                {activeCircle.name?.[0]?.toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1">
+              {isHost && editingCircleName ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newCircleName}
+                    onChange={(e) => setNewCircleName(e.target.value)}
+                    className="rounded-xl text-sm h-8"
+                    placeholder="Circle name"
+                  />
+                  <Button size="sm" className="rounded-xl h-8" onClick={handleUpdateCircleName}>
+                    <Check className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm">{activeCircle.name}</p>
+                  {isHost && (
+                    <button onClick={() => { setNewCircleName(activeCircle.name || ''); setEditingCircleName(true); }}>
+                      <Pencil className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">{activeCircle.member_count || 0} members</p>
             </div>
           </div>
@@ -288,6 +387,19 @@ export default function Settings() {
 
       <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
       <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />
+
+      <ProfileImagePicker
+        open={showProfilePicker}
+        onOpenChange={setShowProfilePicker}
+        onSelect={handleSelectProfileImage}
+        currentImage={myMembership?.profile_image}
+      />
+      <ProfileImagePicker
+        open={showCircleImagePicker}
+        onOpenChange={setShowCircleImagePicker}
+        onSelect={handleSelectCircleImage}
+        currentImage={activeCircle?.image_url}
+      />
     </div>
   );
 }

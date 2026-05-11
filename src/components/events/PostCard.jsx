@@ -83,7 +83,7 @@ export default function PostCard({ post }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className={`bg-card rounded-2xl border shadow-sm overflow-hidden ${
-        isVotePost ? 'border-amber-300 bg-amber-50/30' : isCalendarPost ? 'border-primary/30' : 'border-border'
+        isVotePost ? 'border-amber-300 bg-amber-50/30' : isCalendarPost ? 'border-[#CFB07E]' : 'border-border'
       }`}
     >
       {/* Type Badge */}
