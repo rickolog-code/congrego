@@ -343,7 +343,7 @@ export default function Settings() {
         <Button
           variant="ghost"
           className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive"
-          onClick={() => base44.auth.logout()}
+          onClick={() => base44.auth.logout('/')}
         >
           <LogOut className="w-4 h-4" /> Logout
         </Button>
