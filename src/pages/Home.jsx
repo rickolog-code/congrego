@@ -84,8 +84,34 @@ export default function Home() {
     );
   }
 
+const IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/5d448a907_0c3309cd-a390-480d-87b5-66dccb9b8e20.png";
+
   return (
-    <div className="px-4 pt-6 space-y-5">
+    <div className="px-4 pt-6 space-y-5 relative">
+      {/* Monkey + vine — top right, large, vine curves around 3-dot menu */}
+      <div
+        className="pointer-events-none absolute top-0 right-0 z-0"
+        style={{ width: 280, height: 260, overflow: 'hidden' }}
+      >
+        <img
+          src={IMG}
+          alt=""
+          style={{ position: 'absolute', width: 700, top: -10, right: -10 }}
+        />
+      </div>
+
+      {/* Tree — bottom left, only show bottom half of image to avoid bleed */}
+      <div
+        className="pointer-events-none fixed bottom-14 left-0 z-0"
+        style={{ width: 200, height: 200, overflow: 'hidden' }}
+      >
+        <img
+          src={IMG}
+          alt=""
+          style={{ position: 'absolute', width: 520, bottom: 0, left: -10 }}
+        />
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
