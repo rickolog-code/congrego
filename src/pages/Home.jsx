@@ -88,27 +88,27 @@ const IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/5d4
 
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — top right, large, vine curves around 3-dot menu */}
+      {/* Monkey + vine — top right, large */}
       <div
         className="pointer-events-none absolute top-0 right-0 z-0"
-        style={{ width: 280, height: 260, overflow: 'hidden' }}
+        style={{ width: 320, height: 280, overflow: 'hidden' }}
       >
         <img
           src={IMG}
           alt=""
-          style={{ position: 'absolute', width: 700, top: -10, right: -10 }}
+          style={{ position: 'absolute', width: 820, top: -10, right: -10 }}
         />
       </div>
 
-      {/* Tree — bottom left, only show bottom half of image to avoid bleed */}
+      {/* Tree — fixed to bottom left of viewport */}
       <div
         className="pointer-events-none fixed bottom-14 left-0 z-0"
-        style={{ width: 200, height: 200, overflow: 'hidden' }}
+        style={{ width: 220, height: 220, overflow: 'hidden' }}
       >
         <img
           src={IMG}
           alt=""
-          style={{ position: 'absolute', width: 520, bottom: 0, left: -10 }}
+          style={{ position: 'absolute', width: 560, bottom: 0, left: -10 }}
         />
       </div>
 
