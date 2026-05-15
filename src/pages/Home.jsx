@@ -84,8 +84,27 @@ export default function Home() {
     );
   }
 
+  const MONKEY_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/d6873467d_Monkey.png";
+  const TREE_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/2eed85bff_Tree.png";
+
   return (
     <div className="px-4 pt-6 space-y-5 relative">
+      {/* Monkey + vine — fixed top right */}
+      <img
+        src={MONKEY_IMG}
+        alt=""
+        className="pointer-events-none fixed top-0 right-0 z-0"
+        style={{ width: '75vw', maxWidth: 420 }}
+      />
+
+      {/* Tree — fixed bottom left, just above nav */}
+      <img
+        src={TREE_IMG}
+        alt=""
+        className="pointer-events-none fixed bottom-14 left-0 z-0"
+        style={{ width: '65vw', maxWidth: 360 }}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
