@@ -94,14 +94,14 @@ export default function Home() {
         src={MONKEY_IMG}
         alt=""
         className="pointer-events-none fixed top-0 right-0 z-0"
-        style={{ width: '100vw', maxWidth: 560 }}
+        style={{ width: '120vw', maxWidth: 680 }}
       />
 
-      {/* Tree — fixed bottom left, just above nav */}
+      {/* Tree — fixed bottom left, sitting on nav */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none fixed bottom-14 left-0 z-0"
+        className="pointer-events-none fixed bottom-16 left-0 z-0"
         style={{ width: '100vw' }}
       />
 
