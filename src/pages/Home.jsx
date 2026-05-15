@@ -84,34 +84,8 @@ export default function Home() {
     );
   }
 
-const IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/5d448a907_0c3309cd-a390-480d-87b5-66dccb9b8e20.png";
-
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — top right */}
-      <div
-        className="pointer-events-none absolute top-0 right-0 z-0"
-        style={{ width: 480, height: 420, overflow: 'hidden' }}
-      >
-        <img
-          src={IMG}
-          alt=""
-          style={{ position: 'absolute', width: 1200, top: -15, right: -15 }}
-        />
-      </div>
-
-      {/* Tree — fixed to bottom left of viewport */}
-      <div
-        className="pointer-events-none fixed bottom-14 left-0 z-0"
-        style={{ width: 300, height: 300, overflow: 'hidden' }}
-      >
-        <img
-          src={IMG}
-          alt=""
-          style={{ position: 'absolute', width: 760, bottom: 0, left: -15 }}
-        />
-      </div>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
