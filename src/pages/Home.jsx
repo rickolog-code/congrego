@@ -94,7 +94,7 @@ export default function Home() {
         src={MONKEY_IMG}
         alt=""
         className="pointer-events-none fixed top-0 right-0 z-0"
-        style={{ width: '75vw', maxWidth: 420 }}
+        style={{ width: '100vw', maxWidth: 560 }}
       />
 
       {/* Tree — fixed bottom left, just above nav */}
@@ -102,7 +102,7 @@ export default function Home() {
         src={TREE_IMG}
         alt=""
         className="pointer-events-none fixed bottom-14 left-0 z-0"
-        style={{ width: '65vw', maxWidth: 360 }}
+        style={{ width: '100vw' }}
       />
 
       {/* Header */}
