@@ -6,9 +6,16 @@ import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from '@/components/events/PostCard';
 import CreatePostModal from '@/components/events/CreatePostModal';
+import { useFreeDaySuggestion } from '@/hooks/useFreeDaySuggestion';
 
 export default function Events() {
-  const { activeCircleId, activeCircle } = useCircle();
+  const { activeCircleId, activeCircle, user, myMembership } = useCircle();
+
+  useFreeDaySuggestion({
+    circleId: activeCircleId,
+    userEmail: user?.email,
+    userName: myMembership?.username || user?.full_name,
+  });
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: posts = [], isLoading } = useQuery({

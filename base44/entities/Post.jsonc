@@ -28,7 +28,8 @@
       "enum": [
         "regular",
         "calendar_event",
-        "vote"
+        "vote",
+        "suggestion"
       ],
       "default": "regular"
     },

@@ -77,22 +77,28 @@ export default function PostCard({ post }) {
 
   const isVotePost = post.post_type === 'vote';
   const isCalendarPost = post.post_type === 'calendar_event';
+  const isSuggestion = post.post_type === 'suggestion';
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className={`bg-card rounded-2xl border shadow-sm overflow-hidden ${
-        isVotePost ? 'border-amber-300 bg-amber-50/30' : isCalendarPost ? 'border-[#CFB07E] border-2' : 'border-border'
+        isVotePost ? 'border-amber-300 bg-amber-50/30' :
+        isCalendarPost ? 'border-[#CFB07E] border-2' :
+        isSuggestion ? 'border-primary/40 bg-primary/5 border-2' :
+        'border-border'
       }`}
     >
       {/* Type Badge */}
-      {(isVotePost || isCalendarPost) && (
+      {(isVotePost || isCalendarPost || isSuggestion) && (
         <div className={`px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 ${
-          isVotePost ? 'bg-amber-100 text-amber-800' : 'bg-primary/10 text-primary'
+          isVotePost ? 'bg-amber-100 text-amber-800' :
+          isCalendarPost ? 'bg-primary/10 text-primary' :
+          'bg-primary/10 text-primary'
         }`}>
-          {isVotePost ? <Vote className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
-          {isVotePost ? 'Group Vote' : 'Calendar Event'}
+          {isVotePost ? <Vote className="w-3 h-3" /> : isCalendarPost ? <Calendar className="w-3 h-3" /> : <span>🌿</span>}
+          {isVotePost ? 'Group Vote' : isCalendarPost ? 'Calendar Event' : 'Congrego Suggestion'}
         </div>
       )}
 
