@@ -102,7 +102,7 @@ export default function Home() {
         src={TREE_IMG}
         alt=""
         className="pointer-events-none fixed left-0 z-0"
-        style={{ width: '100vw', bottom: '21px' }}
+        style={{ width: '100vw', bottom: '20px' }}
       />
 
       {/* Header */}
