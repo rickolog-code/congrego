@@ -86,7 +86,7 @@ export default function PostCard({ post }) {
       className={`bg-card rounded-2xl border shadow-sm overflow-hidden ${
         isVotePost ? 'border-amber-300 bg-amber-50/30' :
         isCalendarPost ? 'border-[#CFB07E] border-2' :
-        isSuggestion ? 'border-primary/40 bg-primary/5 border-2' :
+        isSuggestion ? 'border-[#00c56c]/60 bg-[#00c56c]/5 border-2' :
         'border-border'
       }`}
     >
@@ -95,10 +95,10 @@ export default function PostCard({ post }) {
         <div className={`px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 ${
           isVotePost ? 'bg-amber-100 text-amber-800' :
           isCalendarPost ? 'bg-primary/10 text-primary' :
-          'bg-primary/10 text-primary'
+          'bg-[#00c56c]/10 text-[#00c56c]'
         }`}>
-          {isVotePost ? <Vote className="w-3 h-3" /> : isCalendarPost ? <Calendar className="w-3 h-3" /> : <span>🌿</span>}
-          {isVotePost ? 'Group Vote' : isCalendarPost ? 'Calendar Event' : 'Congrego Suggestion'}
+          {isVotePost ? <Vote className="w-3 h-3" /> : isCalendarPost ? <Calendar className="w-3 h-3" /> : <span>🦎</span>}
+          {isVotePost ? 'Group Vote' : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
         </div>
       )}
 
