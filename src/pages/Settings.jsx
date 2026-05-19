@@ -201,28 +201,45 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Notifications & Calendar Prompts */}
-        <div className="space-y-2 pt-1">
-          {!notifEnabled && (
-            <button
-              onClick={handleEnableNotifications}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-left"
-            >
-              <Bell className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span className="text-xs font-medium text-amber-800">Enable notifications to make the app more useful</span>
-            </button>
-          )}
-          {!calendarSynced && (
-            <button
-              onClick={handleSyncCalendar}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-left"
-            >
-              <CalendarDays className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              <span className="text-xs font-medium text-blue-800">Sync your calendar so people know when you're busy</span>
-            </button>
-          )}
-        </div>
       </div>
+
+      {/* Notifications Card */}
+      {!notifEnabled && (
+        <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Bell className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold">Notifications</p>
+            <p className="text-xs text-muted-foreground">Stay in the loop with your circle</p>
+          </div>
+          <button
+            onClick={handleEnableNotifications}
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
+          >
+            Enable Now
+          </button>
+        </div>
+      )}
+
+      {/* Calendar Card */}
+      {!calendarSynced && (
+        <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <CalendarDays className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold">Calendar Sync</p>
+            <p className="text-xs text-muted-foreground">Let others know when you're busy</p>
+          </div>
+          <button
+            onClick={handleSyncCalendar}
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
+          >
+            Enable Now
+          </button>
+        </div>
+      )}
 
       {/* Circle Section */}
       {activeCircle && (
