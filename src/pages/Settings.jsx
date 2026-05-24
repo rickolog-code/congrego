@@ -140,10 +140,11 @@ export default function Settings() {
     const timer = setInterval(async () => {
       if (!popup || popup.closed) {
         clearInterval(timer);
-        // Mark as synced after OAuth completes
-        await base44.entities.CircleMember.update(myMembership.id, { calendar_synced: true });
+        // After OAuth, run the sync (passes user JWT automatically)
+        await base44.functions.invoke('syncGoogleCalendars', {});
         queryClient.invalidateQueries({ queryKey: ['circle-members'] });
         queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         setCalendarSynced(true);
       }
     }, 500);
