@@ -51,13 +51,13 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
             <img
               src={member.profile_image}
               alt=""
-              className="w-11 h-11 rounded-full object-cover ring-2"
-              style={{ ringColor: member.theme_color, borderWidth: 2, borderStyle: 'solid', borderColor: member.theme_color || 'hsl(var(--border))' }}
+              className="w-11 h-11 rounded-full object-cover"
+              style={{ border: `3px solid ${member.theme_color || '#64B5F6'}` }}
             />
           ) : (
             <div
               className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center"
-              style={{ border: `2px solid ${member.theme_color || 'hsl(var(--border))'}` }}
+              style={{ border: `3px solid ${member.theme_color || '#64B5F6'}` }}
             >
               <span className="text-sm font-bold text-primary">
                 {(member.username || member.user_email)?.[0]?.toUpperCase()}

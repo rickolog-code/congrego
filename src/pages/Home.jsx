@@ -114,12 +114,12 @@ export default function Home() {
                 src={myMembership.profile_image}
                 alt=""
                 className="w-11 h-11 rounded-full object-cover"
-                style={{ border: `2px solid ${myMembership?.theme_color || 'hsl(var(--primary) / 0.2)'}` }}
+                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
               />
             ) : (
               <div
                 className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center"
-                style={{ border: `2px solid ${myMembership?.theme_color || 'hsl(var(--primary) / 0.2)'}` }}
+                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
               >
                 <span className="text-base font-bold text-primary">
                   {(user?.full_name || user?.email)?.[0]?.toUpperCase()}

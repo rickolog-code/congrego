@@ -186,12 +186,12 @@ export default function Settings() {
                 src={myMembership.profile_image}
                 alt=""
                 className="w-16 h-16 rounded-2xl object-cover"
-                style={{ border: `3px solid ${myMembership?.theme_color || 'hsl(var(--border))'}` }}
+                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
               />
             ) : (
               <div
                 className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center"
-                style={{ border: `3px solid ${myMembership?.theme_color || 'hsl(var(--border))'}` }}
+                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
               >
                 <span className="text-2xl font-bold text-primary">
                   {(user?.full_name || user?.email)?.[0]?.toUpperCase()}
