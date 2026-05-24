@@ -110,9 +110,17 @@ export default function Home() {
         <div className="flex items-center gap-3">
           <div className="relative">
             {myMembership?.profile_image ? (
-              <img src={myMembership.profile_image} alt="" className="w-11 h-11 rounded-full object-cover ring-2 ring-primary/20" />
+              <img
+                src={myMembership.profile_image}
+                alt=""
+                className="w-11 h-11 rounded-full object-cover"
+                style={{ border: `2px solid ${myMembership?.theme_color || 'hsl(var(--primary) / 0.2)'}` }}
+              />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
+              <div
+                className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center"
+                style={{ border: `2px solid ${myMembership?.theme_color || 'hsl(var(--primary) / 0.2)'}` }}
+              >
                 <span className="text-base font-bold text-primary">
                   {(user?.full_name || user?.email)?.[0]?.toUpperCase()}
                 </span>

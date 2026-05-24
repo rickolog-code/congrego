@@ -50,6 +50,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the user has synced their calendar"
+    },
+    "theme_color": {
+      "type": "string",
+      "description": "User's chosen theme color (hex)",
+      "default": "#64B5F6"
     }
   },
   "required": [

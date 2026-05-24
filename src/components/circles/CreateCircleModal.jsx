@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { randomThemeColor } from '@/components/profile/ColorPickerModal';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -41,6 +42,7 @@ export default function CreateCircleModal({ open, onOpenChange }) {
       profile_image: '',
       role: 'host',
       availability: 'unset',
+      theme_color: randomThemeColor(),
     });
 
     refreshCircles();

@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
 import JoinCircleModal from '@/components/circles/JoinCircleModal';
 import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
+import ColorPickerModal from '@/components/profile/ColorPickerModal';
 
 export default function Settings() {
   const { user, activeCircle, activeCircleId, myMembership, refreshCircles } = useCircle();
@@ -32,6 +33,7 @@ export default function Settings() {
   const [showCircleImagePicker, setShowCircleImagePicker] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState('Notification' in window && Notification.permission === 'granted');
   const [calendarSynced, setCalendarSynced] = useState(myMembership?.calendar_synced || false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const isHost = myMembership?.role === 'host';
 
@@ -59,6 +61,13 @@ export default function Settings() {
   const handleSelectProfileImage = async (url) => {
     if (!myMembership) return;
     await base44.entities.CircleMember.update(myMembership.id, { profile_image: url });
+    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+  };
+
+  const handleSelectColor = async (color) => {
+    if (!myMembership) return;
+    await base44.entities.CircleMember.update(myMembership.id, { theme_color: color });
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
   };
@@ -170,12 +179,20 @@ export default function Settings() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowProfilePicker(true)}
-            className="relative group"
+            className="relative group flex-shrink-0"
           >
             {myMembership?.profile_image ? (
-              <img src={myMembership.profile_image} alt="" className="w-16 h-16 rounded-2xl object-cover" />
+              <img
+                src={myMembership.profile_image}
+                alt=""
+                className="w-16 h-16 rounded-2xl object-cover"
+                style={{ border: `3px solid ${myMembership?.theme_color || 'hsl(var(--border))'}` }}
+              />
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <div
+                className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center"
+                style={{ border: `3px solid ${myMembership?.theme_color || 'hsl(var(--border))'}` }}
+              >
                 <span className="text-2xl font-bold text-primary">
                   {(user?.full_name || user?.email)?.[0]?.toUpperCase()}
                 </span>
@@ -207,6 +224,17 @@ export default function Settings() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">{user?.email}</p>
+            {/* Color swatch bubble */}
+            <button
+              onClick={() => setShowColorPicker(true)}
+              className="mt-2 flex items-center gap-2 group"
+            >
+              <div
+                className="w-6 h-6 rounded-full border-2 border-white shadow-md transition-transform group-hover:scale-110"
+                style={{ background: myMembership?.theme_color || '#64B5F6' }}
+              />
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">My color</span>
+            </button>
           </div>
         </div>
 
@@ -425,6 +453,13 @@ export default function Settings() {
         onOpenChange={setShowCircleImagePicker}
         onSelect={handleSelectCircleImage}
         currentImage={activeCircle?.image_url}
+      />
+
+      <ColorPickerModal
+        open={showColorPicker}
+        onOpenChange={setShowColorPicker}
+        currentColor={myMembership?.theme_color}
+        onSelect={handleSelectColor}
       />
     </div>
   );
