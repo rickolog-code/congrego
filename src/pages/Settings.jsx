@@ -131,14 +131,22 @@ export default function Settings() {
     }
   };
 
+  const CALENDAR_CONNECTOR_ID = '6a134e97b8274a0809c582f7';
+
   const handleSyncCalendar = async () => {
-    // Request calendar access — on mobile this opens system permission
-    // For now we mark as synced in their membership record
     if (!myMembership) return;
-    await base44.entities.CircleMember.update(myMembership.id, { calendar_synced: true });
-    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
-    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
-    setCalendarSynced(true);
+    const url = await base44.connectors.connectAppUser(CALENDAR_CONNECTOR_ID);
+    const popup = window.open(url, '_blank');
+    const timer = setInterval(async () => {
+      if (!popup || popup.closed) {
+        clearInterval(timer);
+        // Mark as synced after OAuth completes
+        await base44.entities.CircleMember.update(myMembership.id, { calendar_synced: true });
+        queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+        queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+        setCalendarSynced(true);
+      }
+    }, 500);
   };
 
   const inviteExpired = activeCircle?.invite_expires_at
