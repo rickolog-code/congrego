@@ -43,30 +43,17 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "email": {
-          "$exists": true
-        }
-      }
+      "host_email": "{{user.email}}"
     },
     "read": {
-      "$or": [
-        {
-          "id": {
-            "$in": "{{user.data.member_circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "id": {
+        "$in": "{{user.data.member_circle_ids}}"
+      }
     },
     "update": {
       "$or": [
         {
-          "data.host_email": "{{user.email}}"
+          "host_email": "{{user.email}}"
         },
         {
           "user_condition": {
@@ -78,7 +65,7 @@
     "delete": {
       "$or": [
         {
-          "data.host_email": "{{user.email}}"
+          "host_email": "{{user.email}}"
         },
         {
           "user_condition": {
