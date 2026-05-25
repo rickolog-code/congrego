@@ -59,7 +59,7 @@ export default function Home() {
           <div>
             <h1 className="text-3xl font-extrabold text-foreground">Congrego</h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Plan together. Explore together.
+              Go further than the group chat.
             </p>
           </div>
           <div className="space-y-3 w-full max-w-xs">
