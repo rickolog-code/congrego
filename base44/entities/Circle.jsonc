@@ -42,9 +42,6 @@
     "host_email"
   ],
   "rls": {
-    "create": {
-      "data.host_email": "{{user.email}}"
-    },
     "read": {
       "id": {
         "$in": "{{user.data.member_circle_ids}}"
