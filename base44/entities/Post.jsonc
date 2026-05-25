@@ -77,40 +77,20 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "data.circle_id": {
-            "$in": "{{user.data.member_circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "data.author_email": "{{user.email}}",
+      "data.circle_id": {
+        "$in": "{{user.data.member_circle_ids}}"
+      }
     },
     "read": {
-      "$or": [
-        {
-          "data.circle_id": {
-            "$in": "{{user.data.member_circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "data.circle_id": {
+        "$in": "{{user.data.member_circle_ids}}"
+      }
     },
     "update": {
       "$or": [
         {
-          "created_by": "{{user.email}}"
+          "data.author_email": "{{user.email}}"
         },
         {
           "data.circle_id": {
@@ -127,7 +107,7 @@
     "delete": {
       "$or": [
         {
-          "created_by": "{{user.email}}"
+          "data.author_email": "{{user.email}}"
         },
         {
           "data.circle_id": {
