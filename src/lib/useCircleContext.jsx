@@ -27,8 +27,10 @@ export function CircleProvider({ children }) {
     queryKey: ['my-circles', circleIds.join(',')],
     queryFn: async () => {
       if (circleIds.length === 0) return [];
-      const all = await base44.entities.Circle.list();
-      return all.filter(c => circleIds.includes(c.id));
+      const all = await Promise.all(
+        circleIds.map(id => base44.entities.Circle.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      return all.filter(Boolean);
     },
     enabled: circleIds.length > 0,
   });
