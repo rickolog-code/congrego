@@ -21,35 +21,38 @@ export default function CreateCircleModal({ open, onOpenChange }) {
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !user?.email) return;
     setLoading(true);
-    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    try {
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    const circle = await base44.entities.Circle.create({
-      name: name.trim(),
-      color,
-      host_email: user.email,
-      invite_code: inviteCode,
-      invite_expires_at: expiresAt,
-      member_count: 1,
-    });
+      const circle = await base44.entities.Circle.create({
+        name: name.trim(),
+        color,
+        host_email: user.email,
+        invite_code: inviteCode,
+        invite_expires_at: expiresAt,
+        member_count: 1,
+      });
 
-    await base44.entities.CircleMember.create({
-      circle_id: circle.id,
-      user_email: user.email,
-      username: user.full_name || user.email.split('@')[0],
-      profile_image: '',
-      role: 'host',
-      availability: 'unset',
-      theme_color: randomThemeColor(),
-    });
+      await base44.entities.CircleMember.create({
+        circle_id: circle.id,
+        user_email: user.email,
+        username: user.full_name || user.email.split('@')[0],
+        profile_image: '',
+        role: 'host',
+        availability: 'unset',
+        theme_color: randomThemeColor(),
+      });
 
-    refreshCircles();
-    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
-    setLoading(false);
-    setName('');
-    onOpenChange(false);
+      refreshCircles();
+      queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+      setName('');
+      onOpenChange(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

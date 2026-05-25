@@ -43,7 +43,7 @@
   ],
   "rls": {
     "create": {
-      "host_email": "{{user.email}}"
+      "data.host_email": "{{user.email}}"
     },
     "read": {
       "id": {
@@ -53,7 +53,7 @@
     "update": {
       "$or": [
         {
-          "host_email": "{{user.email}}"
+          "data.host_email": "{{user.email}}"
         },
         {
           "user_condition": {
@@ -65,7 +65,7 @@
     "delete": {
       "$or": [
         {
-          "host_email": "{{user.email}}"
+          "data.host_email": "{{user.email}}"
         },
         {
           "user_condition": {
