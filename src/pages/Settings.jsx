@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft, LogOut, UserPlus, Plus, Copy, Check,
@@ -34,6 +35,8 @@ export default function Settings() {
   const [notifEnabled, setNotifEnabled] = useState('Notification' in window && Notification.permission === 'granted');
   const [calendarSynced, setCalendarSynced] = useState(myMembership?.calendar_synced || false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isHost = myMembership?.role === 'host';
 
@@ -389,7 +392,7 @@ export default function Settings() {
           <UserPlus className="w-4 h-4" /> Join Circle
         </Button>
         {activeCircle && (
-          <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={handleLeaveCircle}>
+          <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowLeaveConfirm(true)}>
             <Trash2 className="w-4 h-4" /> Leave Circle
           </Button>
         )}
@@ -397,7 +400,7 @@ export default function Settings() {
         <Button
           variant="ghost"
           className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive"
-          onClick={() => base44.auth.logout('/')}
+          onClick={() => setShowLogoutConfirm(true)}
         >
           <LogOut className="w-4 h-4" /> Logout
         </Button>
@@ -438,6 +441,32 @@ export default function Settings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent className="rounded-3xl max-w-sm mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Circle?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to leave this circle?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={handleLeaveCircle}>Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent className="rounded-3xl max-w-sm mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to log out?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={() => base44.auth.logout('/')}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
       <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />
