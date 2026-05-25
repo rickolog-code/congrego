@@ -36,8 +36,11 @@ export function CircleProvider({ children }) {
   });
 
   useEffect(() => {
-    if (circles.length > 0 && !activeCircleId) {
-      setActiveCircleId(circles[0].id);
+    if (circles.length > 0) {
+      const stillValid = circles.some(c => c.id === activeCircleId);
+      if (!stillValid) {
+        setActiveCircleId(circles[0].id);
+      }
     }
   }, [circles, activeCircleId]);
 

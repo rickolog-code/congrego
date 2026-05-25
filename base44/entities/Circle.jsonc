@@ -42,11 +42,6 @@
     "host_email"
   ],
   "rls": {
-    "read": {
-      "id": {
-        "$in": "{{user.data.member_circle_ids}}"
-      }
-    },
     "update": {
       "$or": [
         {
