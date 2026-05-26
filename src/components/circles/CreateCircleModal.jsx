@@ -46,12 +46,6 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         theme_color: randomThemeColor(),
       });
 
-      // Directly update the cache so the UI refreshes immediately
-      queryClient.setQueryData(['my-memberships', user.email], (old = []) => [
-        ...old,
-        { circle_id: circle.id, user_email: user.email, role: 'host', availability: 'unset' }
-      ]);
-      queryClient.setQueryData(['my-circles', circle.id], circle);
       switchCircle(circle.id);
       await refreshCircles();
       queryClient.invalidateQueries({ queryKey: ['circle-members'] });
