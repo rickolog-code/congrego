@@ -15,7 +15,7 @@ export function CircleProvider({ children }) {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const { data: memberships = [] } = useQuery({
+  const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
     queryKey: ['my-memberships', user?.email],
     queryFn: () => base44.entities.CircleMember.filter({ user_email: user.email }),
     enabled: !!user?.email,
@@ -23,7 +23,7 @@ export function CircleProvider({ children }) {
 
   const circleIds = memberships.map(m => m.circle_id);
 
-  const { data: circles = [] } = useQuery({
+  const { data: circles = [], isLoading: circlesLoading } = useQuery({
     queryKey: ['my-circles', circleIds.join(',')],
     queryFn: async () => {
       if (circleIds.length === 0) return [];
@@ -34,6 +34,9 @@ export function CircleProvider({ children }) {
     },
     enabled: circleIds.length > 0,
   });
+
+  // True while we don't yet know if the user has circles
+  const isLoadingCircles = !user || membershipsLoading || (circleIds.length > 0 && circlesLoading);
 
   useEffect(() => {
     if (circles.length > 0) {
@@ -70,6 +73,7 @@ export function CircleProvider({ children }) {
       memberships,
       switchCircle,
       refreshCircles,
+      isLoadingCircles,
     }}>
       {children}
     </CircleContext.Provider>

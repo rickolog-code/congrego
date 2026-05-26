@@ -3,8 +3,8 @@ import BottomNav from './BottomNav';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 
 export default function AppLayout() {
-  const { circles } = useCircle();
-  const hasCircle = circles && circles.length > 0;
+  const { circles, isLoadingCircles } = useCircle();
+  const hasCircle = !isLoadingCircles && circles && circles.length > 0;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">

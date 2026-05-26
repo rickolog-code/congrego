@@ -13,7 +13,7 @@ import JoinCircleModal from '@/components/circles/JoinCircleModal';
 import HeaderMenu from '@/components/home/HeaderMenu';
 
 export default function Home() {
-  const { user, activeCircle, activeCircleId, myMembership, circles } = useCircle();
+  const { user, activeCircle, activeCircleId, myMembership, circles, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -42,6 +42,15 @@ export default function Home() {
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
   };
+
+  // Show spinner while circles are loading to avoid flashing onboarding
+  if (isLoadingCircles) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // No circles - onboarding
   if (circles.length === 0) {
