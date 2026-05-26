@@ -46,13 +46,13 @@ export function CircleProvider({ children }) {
   }, [user?.email]);
 
   useEffect(() => {
-    if (circles.length > 0) {
-      const stillValid = circles.some(c => c.id === activeCircleId);
+    if (safeCircles.length > 0) {
+      const stillValid = safeCircles.some(c => c.id === activeCircleId);
       if (!stillValid) {
-        setActiveCircleId(circles[0].id);
+        setActiveCircleId(safeCircles[0].id);
       }
     }
-  }, [circles, activeCircleId]);
+  }, [safeCircles, activeCircleId]);
 
   useEffect(() => {
     if (activeCircleId) {
@@ -60,7 +60,8 @@ export function CircleProvider({ children }) {
     }
   }, [activeCircleId]);
 
-  const activeCircle = circles.find(c => c.id === activeCircleId) || null;
+  const safeCircles = Array.isArray(circles) ? circles : [];
+  const activeCircle = safeCircles.find(c => c.id === activeCircleId) || null;
   const myMembership = memberships.find(m => m.circle_id === activeCircleId) || null;
 
   const switchCircle = (id) => setActiveCircleId(id);
@@ -73,7 +74,7 @@ export function CircleProvider({ children }) {
   return (
     <CircleContext.Provider value={{
       user,
-      circles,
+      circles: safeCircles,
       activeCircle,
       activeCircleId,
       myMembership,
