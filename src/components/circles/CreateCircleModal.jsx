@@ -13,15 +13,17 @@ const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {
-  const { user, refreshCircles } = useCircle();
+  const { user, circles, refreshCircles } = useCircle();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [color, setColor] = useState(jungleColors[0]);
   const [icon, setIcon] = useState(jungleIcons[0]);
   const [loading, setLoading] = useState(false);
 
+  const atLimit = circles.length >= 5;
+
   const handleCreate = async () => {
-    if (!name.trim() || !user?.email) return;
+    if (!name.trim() || !user?.email || atLimit) return;
     setLoading(true);
     try {
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -62,8 +64,14 @@ export default function CreateCircleModal({ open, onOpenChange }) {
           <DialogTitle className="font-nunito text-lg">Create a Circle</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {atLimit && (
+            <p className="text-sm text-destructive font-medium text-center">
+              You've reached the 5 circle limit. Leave a circle to create a new one.
+            </p>
+          )}
           <Input
             placeholder="Circle name..."
+            disabled={atLimit}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="rounded-xl text-base"
@@ -106,7 +114,7 @@ export default function CreateCircleModal({ open, onOpenChange }) {
 
           <Button
             onClick={handleCreate}
-            disabled={!name.trim() || loading}
+            disabled={!name.trim() || loading || atLimit}
             className="w-full rounded-xl h-11"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Circle'}

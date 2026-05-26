@@ -9,14 +9,16 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function JoinCircleModal({ open, onOpenChange }) {
-  const { user, refreshCircles } = useCircle();
+  const { user, circles, refreshCircles } = useCircle();
   const queryClient = useQueryClient();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const atLimit = circles.length >= 5;
+
   const handleJoin = async () => {
-    if (!code.trim()) return;
+    if (!code.trim() || atLimit) return;
     setLoading(true);
     setError('');
 
@@ -74,8 +76,14 @@ export default function JoinCircleModal({ open, onOpenChange }) {
           <DialogTitle className="font-nunito text-lg">Join a Circle</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {atLimit && (
+            <p className="text-sm text-destructive font-medium text-center">
+              You've reached the 5 circle limit. Leave a circle to join a new one.
+            </p>
+          )}
           <Input
             placeholder="Enter invite code..."
+            disabled={atLimit}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             className="rounded-xl text-base text-center tracking-widest font-bold uppercase"
@@ -88,7 +96,7 @@ export default function JoinCircleModal({ open, onOpenChange }) {
           )}
           <Button
             onClick={handleJoin}
-            disabled={!code.trim() || loading}
+            disabled={!code.trim() || loading || atLimit}
             className="w-full rounded-xl h-11"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join Circle'}

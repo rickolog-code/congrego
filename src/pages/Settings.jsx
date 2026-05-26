@@ -108,7 +108,7 @@ export default function Settings() {
         member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
       });
     }
-    localStorage.removeItem('activeCircleId');
+    // Don't remove activeCircleId from localStorage — the context will auto-select the next available circle
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
   };
