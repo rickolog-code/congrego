@@ -45,8 +45,8 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         theme_color: randomThemeColor(),
       });
 
-      switchCircle(circle.id);
       await refreshCircles();
+      switchCircle(circle.id);
       queryClient.invalidateQueries({ queryKey: ['circle-members'] });
       setName('');
       onOpenChange(false);
