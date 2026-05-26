@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,7 +20,8 @@ import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
 import ColorPickerModal from '@/components/profile/ColorPickerModal';
 
 export default function Settings() {
-  const { user, activeCircle, activeCircleId, myMembership, refreshCircles } = useCircle();
+  const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles } = useCircle();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -108,9 +109,9 @@ export default function Settings() {
         member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
       });
     }
-    // Don't remove activeCircleId from localStorage — the context will auto-select the next available circle
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+    navigate('/');
   };
 
   const handleRemoveMember = async (member) => {

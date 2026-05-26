@@ -35,17 +35,23 @@ export function CircleProvider({ children }) {
     enabled: circleIds.length > 0,
   });
 
-  // True while we don't yet know if the user has circles
+  // True while we don't yet know if the user has circles.
+  // Also covers the transition gap where memberships just changed and circles haven't re-fetched yet.
   const isLoadingCircles = !user || membershipsLoading || (circleIds.length > 0 && circlesLoading);
 
   useEffect(() => {
+    if (membershipsLoading) return;
     if (circles.length > 0) {
       const stillValid = circles.some(c => c.id === activeCircleId);
       if (!stillValid) {
         setActiveCircleId(circles[0].id);
       }
+    } else if (!membershipsLoading && circleIds.length === 0) {
+      // User has no memberships — clear the active circle
+      setActiveCircleId(null);
+      localStorage.removeItem('activeCircleId');
     }
-  }, [circles, activeCircleId]);
+  }, [circles, activeCircleId, membershipsLoading, circleIds.length]);
 
   useEffect(() => {
     if (activeCircleId) {
