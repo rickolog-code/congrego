@@ -23,7 +23,7 @@ export function CircleProvider({ children }) {
 
   const circleIds = memberships.map(m => m.circle_id);
 
-  const { data: circles = [] } = useQuery({
+  const { data: circlesData = [] } = useQuery({
     queryKey: ['my-circles', circleIds.join(',')],
     queryFn: async () => {
       if (circleIds.length === 0) return [];
@@ -36,6 +36,8 @@ export function CircleProvider({ children }) {
     staleTime: 0,
   });
 
+  const circles = Array.isArray(circlesData) ? circlesData : [];
+
   // Real-time subscription: re-fetch memberships when a CircleMember record changes
   useEffect(() => {
     if (!user?.email) return;
@@ -46,13 +48,13 @@ export function CircleProvider({ children }) {
   }, [user?.email]);
 
   useEffect(() => {
-    if (safeCircles.length > 0) {
-      const stillValid = safeCircles.some(c => c.id === activeCircleId);
+    if (circles.length > 0) {
+      const stillValid = circles.some(c => c.id === activeCircleId);
       if (!stillValid) {
-        setActiveCircleId(safeCircles[0].id);
+        setActiveCircleId(circles[0].id);
       }
     }
-  }, [safeCircles, activeCircleId]);
+  }, [circles, activeCircleId]);
 
   useEffect(() => {
     if (activeCircleId) {
@@ -60,8 +62,7 @@ export function CircleProvider({ children }) {
     }
   }, [activeCircleId]);
 
-  const safeCircles = Array.isArray(circles) ? circles : [];
-  const activeCircle = safeCircles.find(c => c.id === activeCircleId) || null;
+  const activeCircle = circles.find(c => c.id === activeCircleId) || null;
   const myMembership = memberships.find(m => m.circle_id === activeCircleId) || null;
 
   const switchCircle = (id) => setActiveCircleId(id);
@@ -74,7 +75,7 @@ export function CircleProvider({ children }) {
   return (
     <CircleContext.Provider value={{
       user,
-      circles: safeCircles,
+      circles,
       activeCircle,
       activeCircleId,
       myMembership,
