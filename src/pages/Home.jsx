@@ -53,8 +53,8 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <div className="w-24 h-24 mx-auto bg-primary/10 rounded-3xl flex items-center justify-center">
-            <span className="text-5xl">🌿</span>
+          <div className="w-24 h-24 mx-auto rounded-3xl overflow-hidden">
+            <img src="https://media.base44.com/images/public/69ff930a3528037ceadeeade/f62f08a69_CongregoLogo-Copy.png" alt="Congrego" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-foreground">Congrego</h1>
