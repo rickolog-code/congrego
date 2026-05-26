@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const CircleContext = createContext(null);
 
@@ -9,47 +9,40 @@ export function CircleProvider({ children }) {
     localStorage.getItem('activeCircleId') || null
   );
   const [user, setUser] = useState(null);
-  const [memberships, setMemberships] = useState([]);
-  const [circles, setCircles] = useState([]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const loadCircles = useCallback(async (userEmail) => {
-    if (!userEmail) return;
-    const mems = await base44.entities.CircleMember.filter({ user_email: userEmail });
-    setMemberships(mems);
-    if (mems.length === 0) {
-      setCircles([]);
-      return;
-    }
-    const circleIds = mems.map(m => m.circle_id);
-    const allCircles = await base44.entities.Circle.list();
-    const fetched = allCircles.filter(c => circleIds.includes(c.id));
-    setCircles(fetched);
-  }, []);
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['my-memberships', user?.email],
+    queryFn: () => base44.entities.CircleMember.filter({ user_email: user.email }),
+    enabled: !!user?.email,
+  });
 
-  useEffect(() => {
-    if (user?.email) {
-      loadCircles(user.email);
-    }
-  }, [user?.email]);
+  const circleIds = memberships.map(m => m.circle_id);
+
+  const { data: circles = [] } = useQuery({
+    queryKey: ['my-circles', circleIds.join(',')],
+    queryFn: async () => {
+      if (circleIds.length === 0) return [];
+      const all = await Promise.all(
+        circleIds.map(id => base44.entities.Circle.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      return all.filter(Boolean);
+    },
+    enabled: circleIds.length > 0,
+  });
 
   useEffect(() => {
     if (circles.length > 0) {
-      const currentStored = localStorage.getItem('activeCircleId');
-      const stillValid = circles.some(c => c.id === currentStored);
+      const stillValid = circles.some(c => c.id === activeCircleId);
       if (!stillValid) {
-        const newId = circles[0].id;
-        setActiveCircleId(newId);
-        localStorage.setItem('activeCircleId', newId);
-      } else if (currentStored !== activeCircleId) {
-        setActiveCircleId(currentStored);
+        setActiveCircleId(circles[0].id);
       }
     }
-  }, [circles]);
+  }, [circles, activeCircleId]);
 
   useEffect(() => {
     if (activeCircleId) {
@@ -60,17 +53,11 @@ export function CircleProvider({ children }) {
   const activeCircle = circles.find(c => c.id === activeCircleId) || null;
   const myMembership = memberships.find(m => m.circle_id === activeCircleId) || null;
 
-  const switchCircle = (id) => {
-    setActiveCircleId(id);
-    localStorage.setItem('activeCircleId', id);
-  };
+  const switchCircle = (id) => setActiveCircleId(id);
 
-  const refreshCircles = async () => {
-    const currentUser = user || await base44.auth.me().catch(() => null);
-    if (currentUser?.email) {
-      await loadCircles(currentUser.email);
-    }
-    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+  const refreshCircles = () => {
+    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+    queryClient.invalidateQueries({ queryKey: ['my-circles'] });
   };
 
   return (

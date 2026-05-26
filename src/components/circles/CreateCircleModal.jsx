@@ -5,38 +5,32 @@ import { useCircle } from '@/lib/useCircleContext.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Palette, AlertCircle } from 'lucide-react';
+import { Loader2, Palette } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1B4332', '#B7E4C7'];
+
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {
-  const { switchCircle, refreshCircles } = useCircle();
+  const { user, refreshCircles } = useCircle();
+  const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [color, setColor] = useState(jungleColors[0]);
   const [icon, setIcon] = useState(jungleIcons[0]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !user?.email) return;
     setLoading(true);
-    setError('');
     try {
-      // Always get fresh user directly
-      const currentUser = await base44.auth.me();
-      if (!currentUser?.email) {
-        setError('Not logged in. Please refresh and try again.');
-        return;
-      }
-
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
       const circle = await base44.entities.Circle.create({
         name: name.trim(),
         color,
-        host_email: currentUser.email,
+        host_email: user.email,
         invite_code: inviteCode,
         invite_expires_at: expiresAt,
         member_count: 1,
@@ -44,20 +38,18 @@ export default function CreateCircleModal({ open, onOpenChange }) {
 
       await base44.entities.CircleMember.create({
         circle_id: circle.id,
-        user_email: currentUser.email,
-        username: currentUser.full_name || currentUser.email.split('@')[0],
+        user_email: user.email,
+        username: user.full_name || user.email.split('@')[0],
         profile_image: '',
         role: 'host',
         availability: 'unset',
         theme_color: randomThemeColor(),
       });
 
-      await refreshCircles();
-      switchCircle(circle.id);
+      refreshCircles();
+      queryClient.invalidateQueries({ queryKey: ['circle-members'] });
       setName('');
       onOpenChange(false);
-    } catch (e) {
-      setError('Something went wrong: ' + e.message);
     } finally {
       setLoading(false);
     }
@@ -76,12 +68,6 @@ export default function CreateCircleModal({ open, onOpenChange }) {
             onChange={(e) => setName(e.target.value)}
             className="rounded-xl text-base"
           />
-
-          {error && (
-            <p className="text-destructive text-sm flex items-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5" /> {error}
-            </p>
-          )}
 
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">

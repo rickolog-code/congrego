@@ -42,11 +42,6 @@
     "host_email"
   ],
   "rls": {
-    "read": {
-      "user_condition": {
-        "isAuthenticated": true
-      }
-    },
     "update": {
       "$or": [
         {

@@ -66,9 +66,21 @@
       "data.user_email": "{{user.email}}"
     },
     "read": {
-      "user_condition": {
-        "isAuthenticated": true
-      }
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "data.circle_id": {
+            "$in": "{{user.data.hosted_circle_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "update": {
       "$or": [
