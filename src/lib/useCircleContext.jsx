@@ -39,11 +39,14 @@ export function CircleProvider({ children }) {
 
   useEffect(() => {
     if (circles.length > 0) {
-      const stillValid = circles.some(c => c.id === activeCircleId);
+      const currentStored = localStorage.getItem('activeCircleId');
+      const stillValid = circles.some(c => c.id === currentStored);
       if (!stillValid) {
         const newId = circles[0].id;
         setActiveCircleId(newId);
         localStorage.setItem('activeCircleId', newId);
+      } else if (currentStored !== activeCircleId) {
+        setActiveCircleId(currentStored);
       }
     }
   }, [circles]);
@@ -57,7 +60,10 @@ export function CircleProvider({ children }) {
   const activeCircle = circles.find(c => c.id === activeCircleId) || null;
   const myMembership = memberships.find(m => m.circle_id === activeCircleId) || null;
 
-  const switchCircle = (id) => setActiveCircleId(id);
+  const switchCircle = (id) => {
+    setActiveCircleId(id);
+    localStorage.setItem('activeCircleId', id);
+  };
 
   const refreshCircles = async () => {
     const currentUser = user || await base44.auth.me().catch(() => null);
