@@ -9,7 +9,6 @@ import { Loader2, Palette } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1B4332', '#B7E4C7'];
-
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {

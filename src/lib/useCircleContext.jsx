@@ -23,7 +23,7 @@ export function CircleProvider({ children }) {
 
   const circleIds = memberships.map(m => m.circle_id);
 
-  const { data: circlesData = [] } = useQuery({
+  const { data: circles = [] } = useQuery({
     queryKey: ['my-circles', circleIds.join(',')],
     queryFn: async () => {
       if (circleIds.length === 0) return [];
@@ -33,28 +33,18 @@ export function CircleProvider({ children }) {
       return all.filter(Boolean);
     },
     enabled: circleIds.length > 0,
-    staleTime: 0,
   });
 
-  const circles = Array.isArray(circlesData) ? circlesData : [];
-
-  // Real-time subscription: re-fetch memberships when a CircleMember record changes
-  useEffect(() => {
-    if (!user?.email) return;
-    const unsub = base44.entities.CircleMember.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ['my-memberships', user.email] });
-    });
-    return unsub;
-  }, [user?.email]);
+  const safeCircles = Array.isArray(circles) ? circles : [];
 
   useEffect(() => {
-    if (circles.length > 0) {
-      const stillValid = circles.some(c => c.id === activeCircleId);
+    if (safeCircles.length > 0) {
+      const stillValid = safeCircles.some(c => c.id === activeCircleId);
       if (!stillValid) {
-        setActiveCircleId(circles[0].id);
+        setActiveCircleId(safeCircles[0].id);
       }
     }
-  }, [circles, activeCircleId]);
+  }, [safeCircles.length, activeCircleId]);
 
   useEffect(() => {
     if (activeCircleId) {
@@ -62,20 +52,19 @@ export function CircleProvider({ children }) {
     }
   }, [activeCircleId]);
 
-  const activeCircle = circles.find(c => c.id === activeCircleId) || null;
+  const activeCircle = safeCircles.find(c => c.id === activeCircleId) || null;
   const myMembership = memberships.find(m => m.circle_id === activeCircleId) || null;
 
   const switchCircle = (id) => setActiveCircleId(id);
 
   const refreshCircles = async () => {
     await queryClient.invalidateQueries({ queryKey: ['my-memberships', user?.email] });
-    await queryClient.refetchQueries({ queryKey: ['my-memberships', user?.email] });
   };
 
   return (
     <CircleContext.Provider value={{
       user,
-      circles,
+      circles: safeCircles,
       activeCircle,
       activeCircleId,
       myMembership,
