@@ -33,7 +33,17 @@ export function CircleProvider({ children }) {
       return all.filter(Boolean);
     },
     enabled: circleIds.length > 0,
+    staleTime: 0,
   });
+
+  // Real-time subscription: re-fetch memberships when a CircleMember record changes
+  useEffect(() => {
+    if (!user?.email) return;
+    const unsub = base44.entities.CircleMember.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['my-memberships', user.email] });
+    });
+    return unsub;
+  }, [user?.email]);
 
   useEffect(() => {
     if (circles.length > 0) {

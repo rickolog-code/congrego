@@ -13,7 +13,7 @@ const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {
-  const { user, refreshCircles } = useCircle();
+  const { user, refreshCircles, switchCircle } = useCircle();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [color, setColor] = useState(jungleColors[0]);
@@ -46,7 +46,14 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         theme_color: randomThemeColor(),
       });
 
-      refreshCircles();
+      // Directly update the cache so the UI refreshes immediately
+      queryClient.setQueryData(['my-memberships', user.email], (old = []) => [
+        ...old,
+        { circle_id: circle.id, user_email: user.email, role: 'host', availability: 'unset' }
+      ]);
+      queryClient.setQueryData(['my-circles', circle.id], circle);
+      switchCircle(circle.id);
+      await refreshCircles();
       queryClient.invalidateQueries({ queryKey: ['circle-members'] });
       setName('');
       onOpenChange(false);
