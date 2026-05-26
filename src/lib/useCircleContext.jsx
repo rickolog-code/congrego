@@ -55,9 +55,9 @@ export function CircleProvider({ children }) {
 
   const switchCircle = (id) => setActiveCircleId(id);
 
-  const refreshCircles = () => {
-    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
-    queryClient.invalidateQueries({ queryKey: ['my-circles'] });
+  const refreshCircles = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['my-memberships', user?.email] });
+    await queryClient.refetchQueries({ queryKey: ['my-memberships', user?.email] });
   };
 
   return (
