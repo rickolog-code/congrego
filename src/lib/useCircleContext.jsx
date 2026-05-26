@@ -25,14 +25,10 @@ export function CircleProvider({ children }) {
       setCircles([]);
       return;
     }
-    const fetched = await Promise.all(
-      mems.map(m =>
-        base44.entities.Circle.filter({ id: m.circle_id })
-          .then(r => r[0])
-          .catch(() => null)
-      )
-    );
-    setCircles(fetched.filter(Boolean));
+    const circleIds = mems.map(m => m.circle_id);
+    const allCircles = await base44.entities.Circle.list();
+    const fetched = allCircles.filter(c => circleIds.includes(c.id));
+    setCircles(fetched);
   }, []);
 
   useEffect(() => {
@@ -64,7 +60,10 @@ export function CircleProvider({ children }) {
   const switchCircle = (id) => setActiveCircleId(id);
 
   const refreshCircles = async () => {
-    await loadCircles(user?.email);
+    const currentUser = user || await base44.auth.me().catch(() => null);
+    if (currentUser?.email) {
+      await loadCircles(currentUser.email);
+    }
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
   };
 

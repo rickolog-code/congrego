@@ -52,8 +52,8 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         theme_color: randomThemeColor(),
       });
 
-      switchCircle(circle.id);
       await refreshCircles();
+      switchCircle(circle.id);
       setName('');
       onOpenChange(false);
     } catch (e) {
