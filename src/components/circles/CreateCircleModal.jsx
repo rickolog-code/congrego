@@ -13,14 +13,14 @@ const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {
-  const { user, circles, refreshCircles } = useCircle();
+  const { user, circles, refreshCircles, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [color, setColor] = useState(jungleColors[0]);
   const [icon, setIcon] = useState(jungleIcons[0]);
   const [loading, setLoading] = useState(false);
 
-  const atLimit = circles.length >= 5;
+  const atLimit = !isLoadingCircles && circles.length >= 5;
 
   const handleCreate = async () => {
     if (!name.trim() || !user?.email || atLimit) return;

@@ -9,13 +9,13 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function JoinCircleModal({ open, onOpenChange }) {
-  const { user, circles, refreshCircles } = useCircle();
+  const { user, circles, refreshCircles, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const atLimit = circles.length >= 5;
+  const atLimit = !isLoadingCircles && circles.length >= 5;
 
   const handleJoin = async () => {
     if (!code.trim() || atLimit) return;

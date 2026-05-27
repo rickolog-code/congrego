@@ -15,7 +15,7 @@ export function CircleProvider({ children }) {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
+  const { data: memberships = [], isLoading: membershipsLoading, isFetching: membershipsFetching } = useQuery({
     queryKey: ['my-memberships', user?.email],
     queryFn: () => base44.entities.CircleMember.filter({ user_email: user.email }),
     enabled: !!user?.email,
@@ -36,22 +36,27 @@ export function CircleProvider({ children }) {
   });
 
   // True while we don't yet know if the user has circles.
-  // Also covers the transition gap where memberships just changed and circles haven't re-fetched yet.
-  const isLoadingCircles = !user || membershipsLoading || (circleIds.length > 0 && circlesLoading);
+  // Use isFetching (not just isLoading) so we cover background refetches after leave/join.
+  const isLoadingCircles =
+    !user ||
+    membershipsLoading ||
+    membershipsFetching ||
+    (circleIds.length > 0 && circlesLoading);
 
   useEffect(() => {
-    if (membershipsLoading) return;
+    // Don't update active circle while data is still in flight
+    if (membershipsLoading || membershipsFetching) return;
     if (circles.length > 0) {
       const stillValid = circles.some(c => c.id === activeCircleId);
       if (!stillValid) {
         setActiveCircleId(circles[0].id);
       }
-    } else if (!membershipsLoading && circleIds.length === 0) {
+    } else if (circleIds.length === 0) {
       // User has no memberships — clear the active circle
       setActiveCircleId(null);
       localStorage.removeItem('activeCircleId');
     }
-  }, [circles, activeCircleId, membershipsLoading, circleIds.length]);
+  }, [circles, activeCircleId, membershipsLoading, membershipsFetching, circleIds.length]);
 
   useEffect(() => {
     if (activeCircleId) {
@@ -80,6 +85,7 @@ export function CircleProvider({ children }) {
       switchCircle,
       refreshCircles,
       isLoadingCircles,
+      membershipsFetching,
     }}>
       {children}
     </CircleContext.Provider>
