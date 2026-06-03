@@ -141,13 +141,41 @@ export default function Home() {
         style={{ width: '90%', maxWidth: 500 }}
       />
 
-      {/* Tree — fixed bottom-left, grass overlapping top of nav bar */}
-      <img
-        src={TREE_IMG}
-        alt=""
-        className="pointer-events-none fixed left-0 z-50"
-        style={{ bottom: '52px', width: '65vw', maxWidth: '320px' }}
-      />
+      {/* Bottom jungle decoration — full width grass strip + tree on left */}
+      <div
+        className="pointer-events-none fixed left-0 right-0 z-50"
+        style={{ bottom: '64px' }}
+      >
+        {/* Full-width grass strip that covers the top of the nav bar */}
+        <div
+          className="absolute left-0 right-0 bottom-0"
+          style={{
+            height: '18px',
+            background: 'linear-gradient(to bottom, #2D6A4F 0%, #1B4332 100%)',
+            borderTop: '3px solid #52B788',
+          }}
+        />
+        {/* Bumpy grass edge on top of the strip */}
+        <svg
+          className="absolute left-0 right-0 bottom-[14px] w-full"
+          height="16"
+          viewBox="0 0 100 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0,16 C5,16 5,4 10,4 C15,4 15,10 20,10 C25,10 25,2 30,2 C35,2 35,8 40,8 C45,8 45,0 50,0 C55,0 55,6 60,6 C65,6 65,3 70,3 C75,3 75,9 80,9 C85,9 85,2 90,2 C95,2 95,7 100,7 L100,16 Z"
+            fill="#52B788"
+          />
+        </svg>
+        {/* Tree image, anchored to the left, sitting on the grass */}
+        <img
+          src={TREE_IMG}
+          alt=""
+          className="absolute left-0 bottom-0"
+          style={{ width: 'clamp(160px, 40vw, 280px)', display: 'block' }}
+        />
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
