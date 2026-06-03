@@ -79,12 +79,12 @@
     "create": {
       "data.author_email": "{{user.email}}",
       "data.circle_id": {
-        "$in": "{{user.data.member_circle_ids}}"
+        "$in": "{{user.data.circle_ids}}"
       }
     },
     "read": {
       "data.circle_id": {
-        "$in": "{{user.data.member_circle_ids}}"
+        "$in": "{{user.data.circle_ids}}"
       }
     },
     "update": {
