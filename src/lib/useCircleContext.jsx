@@ -15,6 +15,14 @@ export function CircleProvider({ children }) {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
+  const { data: memberships = [], isLoading: membershipsLoading, isFetching: membershipsFetching } = useQuery({
+    queryKey: ['my-memberships', user?.email],
+    queryFn: () => base44.entities.CircleMember.filter({ user_email: user.email }),
+    enabled: !!user?.email,
+  });
+
+  const circleIds = memberships.map(m => m.circle_id);
+
   // Backfill circle_ids / hosted_circle_ids on the User record if missing (for existing users)
   useEffect(() => {
     if (!user || membershipsLoading || memberships.length === 0) return;
@@ -32,14 +40,6 @@ export function CircleProvider({ children }) {
       }).then(setUser).catch(() => {});
     }
   }, [user, memberships, membershipsLoading]);
-
-  const { data: memberships = [], isLoading: membershipsLoading, isFetching: membershipsFetching } = useQuery({
-    queryKey: ['my-memberships', user?.email],
-    queryFn: () => base44.entities.CircleMember.filter({ user_email: user.email }),
-    enabled: !!user?.email,
-  });
-
-  const circleIds = memberships.map(m => m.circle_id);
 
   const { data: circles = [], isLoading: circlesLoading } = useQuery({
     queryKey: ['my-circles', circleIds.join(',')],
