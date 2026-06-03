@@ -172,7 +172,7 @@ export default function Home() {
       </motion.div>
 
       {/* Members List */}
-      <div className="space-y-2.5">
+      <div className="space-y-2.5 relative z-10">
         <AnimatePresence>
           {members
             .sort((a, b) => (a.user_email === user?.email ? -1 : 1))
