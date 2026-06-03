@@ -23,24 +23,6 @@ export function CircleProvider({ children }) {
 
   const circleIds = memberships.map(m => m.circle_id);
 
-  // Backfill circle_ids / hosted_circle_ids on the User record if missing (for existing users)
-  useEffect(() => {
-    if (!user || membershipsLoading || memberships.length === 0) return;
-    const memberCircleIds = memberships.map(m => m.circle_id);
-    const hostedCircleIds = memberships.filter(m => m.role === 'host').map(m => m.circle_id);
-    const existingIds = user.circle_ids || [];
-    const existingHostedIds = user.hosted_circle_ids || [];
-    const needsUpdate =
-      memberCircleIds.some(id => !existingIds.includes(id)) ||
-      hostedCircleIds.some(id => !existingHostedIds.includes(id));
-    if (needsUpdate) {
-      base44.auth.updateMe({
-        circle_ids: [...new Set([...existingIds, ...memberCircleIds])],
-        hosted_circle_ids: [...new Set([...existingHostedIds, ...hostedCircleIds])],
-      }).then(setUser).catch(() => {});
-    }
-  }, [user, memberships, membershipsLoading]);
-
   const { data: circles = [], isLoading: circlesLoading } = useQuery({
     queryKey: ['my-circles', circleIds.join(',')],
     queryFn: async () => {
@@ -60,6 +42,24 @@ export function CircleProvider({ children }) {
     membershipsLoading ||
     membershipsFetching ||
     (circleIds.length > 0 && circlesLoading);
+
+  // Backfill circle_ids / hosted_circle_ids on the User record if missing (for existing users)
+  useEffect(() => {
+    if (!user || membershipsLoading || memberships.length === 0) return;
+    const memberCircleIds = memberships.map(m => m.circle_id);
+    const hostedCircleIds = memberships.filter(m => m.role === 'host').map(m => m.circle_id);
+    const existingIds = user.circle_ids || [];
+    const existingHostedIds = user.hosted_circle_ids || [];
+    const needsUpdate =
+      memberCircleIds.some(id => !existingIds.includes(id)) ||
+      hostedCircleIds.some(id => !existingHostedIds.includes(id));
+    if (needsUpdate) {
+      base44.auth.updateMe({
+        circle_ids: [...new Set([...existingIds, ...memberCircleIds])],
+        hosted_circle_ids: [...new Set([...existingHostedIds, ...hostedCircleIds])],
+      }).then(setUser).catch(() => {});
+    }
+  }, [user, memberships, membershipsLoading]);
 
   useEffect(() => {
     // Don't update active circle while data is still in flight
