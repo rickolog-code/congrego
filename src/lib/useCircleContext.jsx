@@ -36,11 +36,12 @@ export function CircleProvider({ children }) {
   });
 
   // True while we don't yet know if the user has circles.
-  // Use isFetching (not just isLoading) so we cover background refetches after leave/join.
+  // Only block on membershipsFetching when we already have memberships (to catch join/leave updates).
+  // For new users with no memberships, we don't want to wait on background refetches.
   const isLoadingCircles =
     !user ||
     membershipsLoading ||
-    membershipsFetching ||
+    (memberships.length > 0 && membershipsFetching) ||
     (circleIds.length > 0 && circlesLoading);
 
   // Backfill circle_ids / hosted_circle_ids on the User record if missing (for existing users)
