@@ -62,6 +62,13 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       member_count: (circle.member_count || 1) + 1,
     });
 
+    // Keep circle_ids on the User in sync for RLS
+    const currentUser = await base44.auth.me();
+    const existingCircleIds = currentUser.circle_ids || [];
+    await base44.auth.updateMe({
+      circle_ids: [...new Set([...existingCircleIds, circle.id])],
+    });
+
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     setLoading(false);

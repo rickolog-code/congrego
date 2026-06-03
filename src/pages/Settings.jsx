@@ -109,6 +109,14 @@ export default function Settings() {
         member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
       });
     }
+    // Remove this circle from the user's circle_ids and hosted_circle_ids for RLS
+    const currentUser = await base44.auth.me();
+    const updatedCircleIds = (currentUser.circle_ids || []).filter(id => id !== activeCircleId);
+    const updatedHostedIds = (currentUser.hosted_circle_ids || []).filter(id => id !== activeCircleId);
+    await base44.auth.updateMe({
+      circle_ids: updatedCircleIds,
+      hosted_circle_ids: updatedHostedIds,
+    });
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     navigate('/');

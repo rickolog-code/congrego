@@ -48,6 +48,15 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         theme_color: randomThemeColor(),
       });
 
+      // Keep circle_ids and hosted_circle_ids on the User in sync for RLS
+      const currentUser = await base44.auth.me();
+      const existingCircleIds = currentUser.circle_ids || [];
+      const existingHostedIds = currentUser.hosted_circle_ids || [];
+      await base44.auth.updateMe({
+        circle_ids: [...new Set([...existingCircleIds, circle.id])],
+        hosted_circle_ids: [...new Set([...existingHostedIds, circle.id])],
+      });
+
       refreshCircles();
       queryClient.invalidateQueries({ queryKey: ['circle-members'] });
       setName('');

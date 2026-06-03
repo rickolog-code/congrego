@@ -72,7 +72,7 @@
         },
         {
           "data.circle_id": {
-            "$in": "{{user.data.hosted_circle_ids}}"
+            "$in": "{{user.data.circle_ids}}"
           }
         },
         {
