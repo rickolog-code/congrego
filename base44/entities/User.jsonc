@@ -1,4 +1,6 @@
 {
+  "name": "User",
+  "type": "object",
   "properties": {
     "role": {
       "type": "string",
@@ -7,11 +9,23 @@
         "admin",
         "user"
       ]
+    },
+    "circle_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "All circle IDs the user belongs to (host or member), used for RLS"
+    },
+    "hosted_circle_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Circle IDs where the user is the host"
     }
   },
   "required": [
     "role"
-  ],
-  "name": "User",
-  "type": "object"
+  ]
 }
