@@ -141,12 +141,12 @@ export default function Home() {
         style={{ width: '90%', maxWidth: 500 }}
       />
 
-      {/* Tree — absolute bottom, constrained to content column */}
+      {/* Tree — fixed bottom-left, flush above the nav bar */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none absolute left-0 right-0 z-0 w-full"
-        style={{ bottom: '80px' }}
+        className="pointer-events-none fixed left-0 z-0"
+        style={{ bottom: '64px', width: '45vw', maxWidth: '240px' }}
       />
 
       {/* Header */}
