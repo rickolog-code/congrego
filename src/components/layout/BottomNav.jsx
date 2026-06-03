@@ -17,37 +17,29 @@ export default function BottomNav() {
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           return (
-            <motion.div key={path} whileTap={{ scale: 0.82 }} transition={{ type: 'spring', stiffness: 600, damping: 28 }}>
-              <Link
-                to={path}
-                className="relative flex flex-col items-center gap-0.5 px-6 py-1.5"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="bottomNavIndicator"
-                    className="absolute -top-1 w-8 h-1 bg-primary rounded-full"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  />
-                )}
+            <Link
+              key={path}
+              to={path}
+              className="relative flex flex-col items-center gap-0.5 px-6 py-1.5"
+            >
+              {isActive && (
                 <motion.div
-                  animate={{ scale: isActive ? 1.15 : 1, y: isActive ? -1 : 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-colors duration-200 ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  />
-                </motion.div>
-                <motion.span
-                  animate={{ opacity: isActive ? 1 : 0.6 }}
-                  transition={{ duration: 0.2 }}
-                  className={`text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
-                >
-                  {label}
-                </motion.span>
-              </Link>
-            </motion.div>
+                  layoutId="bottomNavIndicator"
+                  className="absolute -top-1 w-8 h-1 bg-primary rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
+              <Icon
+                className={`w-5 h-5 transition-colors duration-200 ${
+                  isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              />
+              <span className={`text-[10px] font-semibold transition-colors duration-200 ${
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                {label}
+              </span>
+            </Link>
           );
         })}
       </div>

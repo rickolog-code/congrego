@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
@@ -17,17 +17,6 @@ export default function Home() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
-  const [showFallbackButtons, setShowFallbackButtons] = useState(false);
-
-  // After 3 seconds of loading, always show the join/create buttons as a fallback
-  useEffect(() => {
-    if (!isLoadingCircles) {
-      setShowFallbackButtons(false);
-      return;
-    }
-    const timer = setTimeout(() => setShowFallbackButtons(true), 3000);
-    return () => clearTimeout(timer);
-  }, [isLoadingCircles]);
 
   const { data: members = [] } = useQuery({
     queryKey: ['circle-members', activeCircleId],
@@ -54,31 +43,11 @@ export default function Home() {
     return 'Good evening';
   };
 
-  // Show spinner while circles are loading, with fallback buttons after 3s
+  // Show spinner while circles are loading to avoid flashing onboarding
   if (isLoadingCircles) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center gap-8">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
-        {showFallbackButtons && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4 w-full max-w-xs"
-          >
-            <div className="w-16 h-16 mx-auto rounded-2xl overflow-hidden">
-              <img src="https://media.base44.com/images/public/69ff930a3528037ceadeeade/f62f08a69_CongregoLogo-Copy.png" alt="Congrego" className="w-full h-full object-cover" />
-            </div>
-            <p className="text-sm text-muted-foreground">Welcome to Congrego! Get started by joining or creating a circle.</p>
-            <Button onClick={() => setShowCreate(true)} className="w-full rounded-2xl h-12 text-base font-bold">
-              <Plus className="w-5 h-5 mr-2" /> Create a Circle
-            </Button>
-            <Button variant="outline" onClick={() => setShowJoin(true)} className="w-full rounded-2xl h-12 text-base font-bold">
-              <UserPlus className="w-5 h-5 mr-2" /> Join a Circle
-            </Button>
-            <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
-            <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />
-          </motion.div>
-        )}
       </div>
     );
   }
@@ -103,23 +72,19 @@ export default function Home() {
             </p>
           </div>
           <div className="space-y-3 w-full max-w-xs">
-            <motion.div whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 500, damping: 28 }}>
-              <Button
-                onClick={() => setShowCreate(true)}
-                className="w-full rounded-2xl h-12 text-base font-bold"
-              >
-                <Plus className="w-5 h-5 mr-2" /> Create a Circle
-              </Button>
-            </motion.div>
-            <motion.div whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 500, damping: 28 }}>
-              <Button
-                variant="outline"
-                onClick={() => setShowJoin(true)}
-                className="w-full rounded-2xl h-12 text-base font-bold"
-              >
-                <UserPlus className="w-5 h-5 mr-2" /> Join a Circle
-              </Button>
-            </motion.div>
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="w-full rounded-2xl h-12 text-base font-bold"
+            >
+              <Plus className="w-5 h-5 mr-2" /> Create a Circle
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowJoin(true)}
+              className="w-full rounded-2xl h-12 text-base font-bold"
+            >
+              <UserPlus className="w-5 h-5 mr-2" /> Join a Circle
+            </Button>
           </div>
         </motion.div>
         <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
@@ -133,20 +98,20 @@ export default function Home() {
 
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — absolute top right */}
+      {/* Monkey + vine — fixed top right */}
       <img
         src={MONKEY_IMG}
         alt=""
-        className="pointer-events-none absolute top-0 right-0 z-0"
-        style={{ width: '90%', maxWidth: 500 }}
+        className="pointer-events-none fixed top-0 right-0 z-0"
+        style={{ width: '90vw', maxWidth: 500 }}
       />
 
-      {/* Bottom jungle decoration — tree image spans full width above nav */}
+      {/* Tree — fixed bottom left, sitting on top of nav */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none fixed left-0 right-0 z-0 w-full"
-        style={{ bottom: '64px', objectFit: 'fill', objectPosition: 'left bottom', display: 'block' }}
+        className="pointer-events-none fixed left-0 z-0"
+        style={{ width: '100vw', bottom: '19px' }}
       />
 
       {/* Header */}

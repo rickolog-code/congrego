@@ -46,7 +46,7 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3 p-3 bg-card rounded-2xl border border-border shadow-sm"
       >
-        <motion.button whileTap={{ scale: 0.88 }} transition={{ type: 'spring', stiffness: 500, damping: 25 }} onClick={() => setShowProfile(true)} className="relative flex-shrink-0">
+        <button onClick={() => setShowProfile(true)} className="relative flex-shrink-0">
           {member.profile_image ? (
             <img
               src={member.profile_image}
@@ -69,7 +69,7 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
               <span className="text-[8px]">👑</span>
             </div>
           )}
-        </motion.button>
+        </button>
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">
@@ -102,7 +102,6 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
             >
               <Icon className="w-4 h-4" />
             </motion.button>
-
           ))}
         </div>
       </motion.div>

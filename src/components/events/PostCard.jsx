@@ -149,34 +149,28 @@ export default function PostCard({ post }) {
         {/* Special Vote Buttons */}
         {isVotePost && (
           <div className="flex gap-2">
-            <motion.div whileTap={{ scale: 0.9 }} transition={{ type: 'spring', stiffness: 500, damping: 25 }} className="flex-1">
-              <Button
-                variant={post.yes_votes?.includes(user?.email) ? 'default' : 'outline'}
-                size="sm"
-                className="w-full rounded-xl"
-                onClick={() => handleSpecialVote('yes')}
-              >
-                Yes ({post.yes_votes?.length || 0})
-              </Button>
-            </motion.div>
-            <motion.div whileTap={{ scale: 0.9 }} transition={{ type: 'spring', stiffness: 500, damping: 25 }} className="flex-1">
-              <Button
-                variant={post.no_votes?.includes(user?.email) ? 'destructive' : 'outline'}
-                size="sm"
-                className="w-full rounded-xl"
-                onClick={() => handleSpecialVote('no')}
-              >
-                No ({post.no_votes?.length || 0})
-              </Button>
-            </motion.div>
+            <Button
+              variant={post.yes_votes?.includes(user?.email) ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 rounded-xl"
+              onClick={() => handleSpecialVote('yes')}
+            >
+              Yes ({post.yes_votes?.length || 0})
+            </Button>
+            <Button
+              variant={post.no_votes?.includes(user?.email) ? 'destructive' : 'outline'}
+              size="sm"
+              className="flex-1 rounded-xl"
+              onClick={() => handleSpecialVote('no')}
+            >
+              No ({post.no_votes?.length || 0})
+            </Button>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex items-center gap-1 pt-1 border-t border-border">
-          <motion.button
-            whileTap={{ scale: 0.82 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+          <button
             onClick={() => handleVote('up')}
             onContextMenu={(e) => { e.preventDefault(); setShowVoters('up'); }}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
@@ -185,10 +179,8 @@ export default function PostCard({ post }) {
           >
             <ThumbsUp className="w-3.5 h-3.5" />
             {upvotes.length > 0 && upvotes.length}
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.82 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+          </button>
+          <button
             onClick={() => handleVote('down')}
             onContextMenu={(e) => { e.preventDefault(); setShowVoters('down'); }}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
@@ -197,16 +189,14 @@ export default function PostCard({ post }) {
           >
             <ThumbsDown className="w-3.5 h-3.5" />
             {downvotes.length > 0 && downvotes.length}
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+          </button>
+          <button
             onClick={() => setShowComments(!showComments)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-muted text-muted-foreground"
           >
             <MessageCircle className="w-3.5 h-3.5" />
             Comments
-          </motion.button>
+          </button>
         </div>
 
         {showComments && <CommentSection postId={post.id} />}
