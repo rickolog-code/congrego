@@ -14,9 +14,11 @@ export default function CircleSwitcher() {
         return (
           <motion.button
             key={circle.id}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.9 }}
+            animate={{ scale: isActive ? 1.03 : 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
             onClick={() => switchCircle(circle.id)}
-            className={`relative flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all duration-200 ${
+            className={`relative flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl border transition-colors duration-200 ${
               isActive
                 ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
                 : 'bg-card text-foreground border-border hover:border-primary/30'

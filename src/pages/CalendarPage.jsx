@@ -107,12 +107,14 @@ export default function CalendarPage() {
               {format(selectedDate, 'EEEE, MMMM d')}
             </h3>
 
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="w-full rounded-2xl h-12 text-base font-bold shadow-md shadow-primary/20"
-            >
-              <Plus className="w-5 h-5 mr-2" /> Create Event
-            </Button>
+            <motion.div whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 500, damping: 28 }}>
+              <Button
+                onClick={() => setShowCreate(true)}
+                className="w-full rounded-2xl h-12 text-base font-bold shadow-md shadow-primary/20"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Create Event
+              </Button>
+            </motion.div>
 
             <AnimatePresence>
               {selectedEvents.length > 0 ? (
