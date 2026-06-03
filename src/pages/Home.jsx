@@ -133,20 +133,20 @@ export default function Home() {
 
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — fixed top right */}
+      {/* Monkey + vine — absolute top right */}
       <img
         src={MONKEY_IMG}
         alt=""
-        className="pointer-events-none fixed top-0 right-0 z-0"
-        style={{ width: '90vw', maxWidth: 500 }}
+        className="pointer-events-none absolute top-0 right-0 z-0"
+        style={{ width: '90%', maxWidth: 500 }}
       />
 
-      {/* Tree — fixed bottom left, sitting on top of nav */}
+      {/* Tree — absolute bottom, constrained to content column */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none fixed left-0 z-0"
-        style={{ width: '100vw', bottom: '19px' }}
+        className="pointer-events-none absolute left-0 right-0 z-0 w-full"
+        style={{ bottom: '80px' }}
       />
 
       {/* Header */}
