@@ -116,21 +116,6 @@ export default function Home() {
           animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)', opacity: 0 }}
           transition={{ duration: 0.2 }}
         />
-        {/* Hover tooltip — just below the monkey image */}
-        <AnimatePresence>
-          {monkeyHovered && (
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.85 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.85 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap pointer-events-none"
-              style={{ top: '100%', marginTop: 4 }}
-            >
-              🎮 Monkey around?
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
       {/* Tight hover hitbox: just the vine+monkey area, top-right corner */}
       <div
@@ -142,6 +127,21 @@ export default function Home() {
         onTouchEnd={() => setMonkeyHovered(false)}
         onClick={() => navigate('/games')}
       />
+      {/* Tooltip fixed just below the monkey hitbox */}
+      <AnimatePresence>
+        {monkeyHovered && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="fixed z-10 right-3 text-xs font-bold text-foreground/70 pointer-events-none"
+            style={{ top: 'calc(42vw + 4px)', maxTop: 234 }}
+          >
+            🎮 Tap to play!
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* Tree — fixed bottom left, sitting on top of nav */}
       <img
