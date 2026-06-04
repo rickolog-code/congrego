@@ -139,7 +139,7 @@ export default function Home() {
       {/* Tight hover hitbox: just the vine+monkey area, top-right corner */}
       <div
         className="fixed z-10 cursor-pointer"
-        style={{ top: 0, right: 0, width: '38vw', maxWidth: 210, height: '52vw', maxHeight: 290 }}
+        style={{ top: 0, right: 0, width: '30vw', maxWidth: 160, height: '42vw', maxHeight: 230 }}
         onMouseEnter={() => setMonkeyHovered(true)}
         onMouseLeave={() => setMonkeyHovered(false)}
         onTouchStart={() => setMonkeyHovered(true)}
