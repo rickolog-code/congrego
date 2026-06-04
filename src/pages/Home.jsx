@@ -102,25 +102,23 @@ export default function Home() {
   return (
     <div className="px-4 pt-6 space-y-5 relative">
       {/* Monkey + vine — fixed top right, clickable */}
+      {/* Outer container: full image size for layout, but NOT the hover zone */}
       <div
-        className="fixed top-0 right-0 z-10 cursor-pointer select-none"
+        className="fixed top-0 right-0 z-10 pointer-events-none select-none"
         style={{ width: '90vw', maxWidth: 500 }}
-        onMouseEnter={() => setMonkeyHovered(true)}
-        onMouseLeave={() => setMonkeyHovered(false)}
-        onTouchStart={() => setMonkeyHovered(true)}
-        onTouchEnd={() => setMonkeyHovered(false)}
-        onClick={() => navigate('/games')}
       >
+        <img src={MONKEY_IMG} alt="Monkey" className="w-full" style={{ opacity: monkeyHovered ? 0 : 1, transition: 'opacity 0.15s' }} />
+        {/* Glowing version shown on hover */}
         <motion.img
           src={MONKEY_IMG}
-          alt="Monkey"
-          className="w-full"
-          animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)' }}
+          alt=""
+          className="w-full absolute inset-0"
+          animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)', opacity: 0 }}
           transition={{ duration: 0.2 }}
         />
-        {/* Game controller badge */}
-        <div className="absolute pointer-events-none" style={{ bottom: '20%', right: '30%' }}>
-          <span className="text-2xl drop-shadow-lg">🎮</span>
+        {/* Controller in the monkey's lower-right hand */}
+        <div className="absolute pointer-events-none" style={{ bottom: '22%', right: '34%' }}>
+          <span className="text-xl drop-shadow-lg">🎮</span>
         </div>
         {/* Hover tooltip */}
         <AnimatePresence>
@@ -130,7 +128,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.85 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-1/2 -translate-x-1/2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
+              className="absolute left-1/2 -translate-x-1/2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap pointer-events-none"
               style={{ top: '40%' }}
             >
               🎮 Monkey around?
@@ -138,6 +136,16 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
+      {/* Tight hover hitbox: just the vine+monkey area, top-right corner */}
+      <div
+        className="fixed z-10 cursor-pointer"
+        style={{ top: 0, right: 0, width: '38vw', maxWidth: 210, height: '52vw', maxHeight: 290 }}
+        onMouseEnter={() => setMonkeyHovered(true)}
+        onMouseLeave={() => setMonkeyHovered(false)}
+        onTouchStart={() => setMonkeyHovered(true)}
+        onTouchEnd={() => setMonkeyHovered(false)}
+        onClick={() => navigate('/games')}
+      />
 
       {/* Tree — fixed bottom left, sitting on top of nav */}
       <img

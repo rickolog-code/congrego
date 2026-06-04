@@ -236,7 +236,7 @@ export default function Games() {
 
       {/* Game Dialog */}
       <Dialog open={!!activeGame} onOpenChange={() => setActiveGame(null)}>
-        <DialogContent className="max-w-sm rounded-3xl">
+        <DialogContent className={`${activeGame === 'chess' ? 'max-w-[95vw] w-[520px]' : 'max-w-sm'} rounded-3xl`}>
           <DialogHeader>
             <DialogTitle className="text-center font-extrabold text-lg">
               {GAME_TITLES[activeGame]}
