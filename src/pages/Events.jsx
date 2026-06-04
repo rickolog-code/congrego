@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,8 @@ import CreatePostModal from '@/components/events/CreatePostModal';
 import { useFreeDaySuggestion } from '@/hooks/useFreeDaySuggestion';
 
 export default function Events() {
-  const { activeCircleId, activeCircle, user, myMembership } = useCircle();
+  const { activeCircleId, activeCircle, user, myMembership, circles } = useCircle();
+  const queryClient = useQueryClient();
 
   useFreeDaySuggestion({
     circleId: activeCircleId,
@@ -18,9 +19,21 @@ export default function Events() {
   });
   const [showCreate, setShowCreate] = useState(false);
 
+  // The set of circle IDs the user currently belongs to
+  const myCircleIds = circles.map(c => c.id);
+
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['circle-posts', activeCircleId],
-    queryFn: () => base44.entities.Post.filter({ circle_id: activeCircleId }, '-created_date'),
+    queryFn: async () => {
+      const allPosts = await base44.entities.Post.filter({ circle_id: activeCircleId }, '-created_date');
+
+      // Clean up any stale completed vote posts (those with the old "✅ Vote passed" marker)
+      const stalePosts = allPosts.filter(p => p.post_type === 'vote' && p.content?.includes('✅ Vote passed'));
+      await Promise.all(stalePosts.map(p => base44.entities.Post.delete(p.id)));
+
+      // Return only posts from the active circle, excluding completed vote posts
+      return allPosts.filter(p => !stalePosts.find(s => s.id === p.id));
+    },
     enabled: !!activeCircleId,
   });
 
