@@ -82,6 +82,9 @@ export default function PostCard({ post }) {
       const totalWeight = members.reduce((sum, m) => sum + (m.user_email === hostEmail ? 2 : 1), 0);
 
       // Majority = more than half of total weight
+      const noWeight = noVotes.reduce((sum, email) => sum + (email === hostEmail ? 2 : 1), 0);
+      const votedWeight = yesWeight + noWeight;
+
       if (yesWeight > totalWeight / 2) {
         // Kick the target member
         const targetMember = members.find(m => m.user_email === post.vote_target_email);
@@ -95,15 +98,15 @@ export default function PostCard({ post }) {
               member_count: Math.max(0, (circle.member_count || 1) - 1),
             });
           }
-
-          // Update the vote post content to reflect the result
-          await base44.entities.Post.update(post.id, {
-            content: post.content + '\n\n✅ Vote passed — member has been removed from the circle.',
-          });
-
-          queryClient.invalidateQueries({ queryKey: ['circle-members'] });
-          queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
         }
+        // Delete the vote post
+        await base44.entities.Post.delete(post.id);
+        queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+        queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+      } else if (noWeight > totalWeight / 2) {
+        // No-votes won — delete the post
+        await base44.entities.Post.delete(post.id);
+        queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
       }
     }
   };
