@@ -8,18 +8,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import TicTacToeGame from '@/components/games/TicTacToeGame';
 import RockPaperScissorsGame from '@/components/games/RockPaperScissorsGame';
 import MemoryMatchGame from '@/components/games/MemoryMatchGame';
+import ChessGame from '@/components/games/ChessGame';
+import { unlockGameAchievement } from '@/pages/Achievements';
 
 const MONKEY_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/d6873467d_Monkey.png";
 
 // --- Inline: Coin Flip ---
-function CoinFlipGame() {
+function CoinFlipGame({ onFiveHeads }) {
   const [result, setResult] = useState(null);
   const [flipping, setFlipping] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [achieved, setAchieved] = useState(false);
+
   const flip = () => {
     setFlipping(true);
     setResult(null);
-    setTimeout(() => { setResult(Math.random() < 0.5 ? 'Heads' : 'Tails'); setFlipping(false); }, 900);
+    setTimeout(() => {
+      const r = Math.random() < 0.5 ? 'Heads' : 'Tails';
+      setResult(r);
+      setFlipping(false);
+      if (r === 'Heads') {
+        const newStreak = streak + 1;
+        setStreak(newStreak);
+        if (newStreak >= 5 && !achieved) {
+          setAchieved(true);
+          onFiveHeads?.();
+        }
+      } else {
+        setStreak(0);
+      }
+    }, 900);
   };
+
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <motion.div
@@ -30,6 +50,8 @@ function CoinFlipGame() {
         {flipping ? '🪙' : result === 'Heads' ? '👑' : result === 'Tails' ? '🦅' : '🪙'}
       </motion.div>
       {result && <p className="text-2xl font-extrabold">{result}!</p>}
+      {streak > 0 && <p className="text-xs text-muted-foreground">🔥 Heads streak: {streak}</p>}
+      {achieved && <p className="text-sm font-bold text-amber-500">🏆 Achievement unlocked!</p>}
       <Button onClick={flip} disabled={flipping} className="rounded-2xl px-10">
         {flipping ? 'Flipping…' : 'Flip!'}
       </Button>
@@ -65,25 +87,38 @@ function DiceRollGame() {
 }
 
 // --- Inline: Number Guesser ---
-function NumberGuesserGame() {
+function NumberGuesserGame({ onFirstTryWin }) {
   const [secret] = useState(() => Math.floor(Math.random() * 100) + 1);
   const [guess, setGuess] = useState('');
   const [hint, setHint] = useState('');
   const [won, setWon] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [achieved, setAchieved] = useState(false);
+
   const submit = () => {
     const n = parseInt(guess);
     if (!n || n < 1 || n > 100) return;
-    setAttempts(a => a + 1);
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
     setGuess('');
-    if (n === secret) { setHint(`🎉 Correct! It was ${secret}!`); setWon(true); }
-    else setHint(n < secret ? '📈 Go higher!' : '📉 Go lower!');
+    if (n === secret) {
+      setHint(`🎉 Correct! It was ${secret}!`);
+      setWon(true);
+      if (newAttempts === 1 && !achieved) {
+        setAchieved(true);
+        onFirstTryWin?.();
+      }
+    } else {
+      setHint(n < secret ? '📈 Go higher!' : '📉 Go lower!');
+    }
   };
+
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <p className="text-sm text-muted-foreground">Guess a number between 1 and 100</p>
       {attempts > 0 && <p className="text-xs text-muted-foreground">Attempts: {attempts}</p>}
       {hint && <p className="text-xl font-bold">{hint}</p>}
+      {achieved && <p className="text-sm font-bold text-amber-500">🏆 Achievement unlocked!</p>}
       {!won && (
         <div className="flex gap-2 w-full max-w-xs">
           <Input type="number" min={1} max={100} value={guess}
@@ -98,30 +133,34 @@ function NumberGuesserGame() {
 }
 
 // --- Game list ---
-const GAMES = [
-  { id: 'tictactoe', name: 'Tic Tac Toe',     emoji: '🎯', desc: 'Play vs the monkey', gradient: 'from-emerald-400 to-green-600' },
-  { id: 'rps',       name: 'Rock Paper\nScissors', emoji: '✊', desc: 'Beat the monkey',   gradient: 'from-blue-400 to-indigo-600' },
-  { id: 'memory',    name: 'Memory Match',    emoji: '🧩', desc: 'Find the pairs',      gradient: 'from-purple-400 to-violet-600' },
-  { id: 'coinflip',  name: 'Coin Flip',       emoji: '🪙', desc: 'Heads or tails?',     gradient: 'from-yellow-400 to-amber-500' },
-  { id: 'dice',      name: 'Dice Roll',       emoji: '🎲', desc: 'Roll for luck',       gradient: 'from-red-400 to-rose-600' },
-  { id: 'numguess',  name: 'Number Guesser',  emoji: '🔢', desc: 'Guess 1-100',         gradient: 'from-cyan-400 to-sky-600' },
-  { id: 'word',      name: 'Word Scramble',   emoji: '🔤', desc: 'Coming soon…',        gradient: 'from-slate-300 to-slate-400', comingSoon: true },
-  { id: 'trivia',    name: 'Trivia',          emoji: '🧠', desc: 'Coming soon…',        gradient: 'from-slate-300 to-slate-400', comingSoon: true },
-  { id: 'drawing',   name: 'Drawing',         emoji: '🎨', desc: 'Coming soon…',        gradient: 'from-slate-300 to-slate-400', comingSoon: true },
+const SOLO_GAMES = [
+  { id: 'tictactoe', name: 'Vine\nClimber',       emoji: '🎯', desc: 'Play vs the monkey', gradient: 'from-emerald-500 to-green-700' },
+  { id: 'rps',       name: 'Claw\nChallenge',      emoji: '🦎', desc: 'Beat the monkey',    gradient: 'from-lime-500 to-emerald-700' },
+  { id: 'chess',     name: 'Jungle\nChess',         emoji: '♟️', desc: 'Outsmart the monkey', gradient: 'from-teal-500 to-cyan-700' },
+  { id: 'memory',    name: 'Jungle\nMemory',        emoji: '🌴', desc: 'Find the pairs',     gradient: 'from-green-500 to-teal-700' },
+  { id: 'coinflip',  name: 'Canopy\nCoin',          emoji: '🪙', desc: 'Heads or tails?',    gradient: 'from-yellow-500 to-amber-600' },
+  { id: 'dice',      name: 'Monkey\nDice',          emoji: '🎲', desc: 'Roll for luck',      gradient: 'from-orange-500 to-amber-700' },
+  { id: 'numguess',  name: 'Safari\nGuess',         emoji: '🐒', desc: 'Guess 1-100',        gradient: 'from-cyan-500 to-sky-700' },
 ];
 
 const GAME_TITLES = {
-  tictactoe: 'Tic Tac Toe', rps: 'Rock Paper Scissors',
-  memory: 'Memory Match', coinflip: 'Coin Flip',
-  dice: 'Dice Roll', numguess: 'Number Guesser',
+  tictactoe: 'Vine Climber', rps: 'Claw Challenge',
+  chess: 'Jungle Chess', memory: 'Jungle Memory',
+  coinflip: 'Canopy Coin', dice: 'Monkey Dice', numguess: 'Safari Guess',
 };
 
 export default function Games() {
   const navigate = useNavigate();
   const [activeGame, setActiveGame] = useState(null);
+  const [tab, setTab] = useState('solo');
+
+  // Achievement flags (in-session toast-style)
+  const [achievedFiveHeads, setAchievedFiveHeads] = useState(false);
+  const [achievedPerfectMemory, setAchievedPerfectMemory] = useState(false);
+  const [achievedFirstTry, setAchievedFirstTry] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen bg-background pb-24 flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-muted transition-colors">
@@ -134,21 +173,65 @@ export default function Games() {
         </div>
       </div>
 
-      {/* 3-wide scrollable grid */}
-      <div className="grid grid-cols-3 gap-3 p-4">
-        {GAMES.map((game, i) => (
-          <motion.button
-            key={game.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            onClick={() => !game.comingSoon && setActiveGame(game.id)}
-            className={`flex flex-col items-center justify-center aspect-square rounded-2xl bg-gradient-to-br ${game.gradient} text-white shadow-md transition-transform active:scale-95 ${game.comingSoon ? 'opacity-40 cursor-default' : 'hover:scale-105'}`}
-          >
-            <span className="text-3xl mb-1">{game.emoji}</span>
-            <span className="text-[10px] font-bold text-center leading-tight px-1 whitespace-pre-line">{game.name}</span>
-          </motion.button>
-        ))}
+      {/* Tab Content */}
+      <div className="flex-1 p-4">
+        <AnimatePresence mode="wait">
+          {tab === 'solo' ? (
+            <motion.div
+              key="solo"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-3 gap-3"
+            >
+              {SOLO_GAMES.map((game, i) => (
+                <motion.button
+                  key={game.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  onClick={() => setActiveGame(game.id)}
+                  className={`flex flex-col items-center justify-center aspect-square rounded-2xl bg-gradient-to-br ${game.gradient} text-white shadow-md transition-transform active:scale-95 hover:scale-105`}
+                >
+                  <span className="text-3xl mb-1">{game.emoji}</span>
+                  <span className="text-[10px] font-bold text-center leading-tight px-1 whitespace-pre-line">{game.name}</span>
+                </motion.button>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="multi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center gap-4 pt-16"
+            >
+              <span className="text-6xl">🌴</span>
+              <h2 className="text-2xl font-extrabold text-foreground">Coming Soon</h2>
+              <p className="text-sm text-muted-foreground text-center max-w-[200px]">
+                Multiplayer jungle games are swinging your way!
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Tab Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border flex z-20">
+        <button
+          onClick={() => setTab('solo')}
+          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === 'solo' ? 'text-primary border-t-2 border-primary' : 'text-muted-foreground'}`}
+        >
+          🐒 Single Player
+        </button>
+        <button
+          onClick={() => setTab('multi')}
+          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === 'multi' ? 'text-primary border-t-2 border-primary' : 'text-muted-foreground'}`}
+        >
+          🌴 Multiplayer
+        </button>
       </div>
 
       {/* Game Dialog */}
@@ -161,10 +244,17 @@ export default function Games() {
           </DialogHeader>
           {activeGame === 'tictactoe' && <TicTacToeGame />}
           {activeGame === 'rps'       && <RockPaperScissorsGame />}
-          {activeGame === 'memory'    && <MemoryMatchGame />}
-          {activeGame === 'coinflip'  && <CoinFlipGame />}
+          {activeGame === 'chess'     && <ChessGame />}
+          {activeGame === 'memory'    && (
+            <MemoryMatchGame onPerfectGame={() => { setAchievedPerfectMemory(true); unlockGameAchievement('perfect_memory'); }} />
+          )}
+          {activeGame === 'coinflip'  && (
+            <CoinFlipGame onFiveHeads={() => { setAchievedFiveHeads(true); unlockGameAchievement('five_heads'); }} />
+          )}
           {activeGame === 'dice'      && <DiceRollGame />}
-          {activeGame === 'numguess'  && <NumberGuesserGame />}
+          {activeGame === 'numguess'  && (
+            <NumberGuesserGame onFirstTryWin={() => { setAchievedFirstTry(true); unlockGameAchievement('first_try_guess'); }} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

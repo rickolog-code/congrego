@@ -6,6 +6,15 @@ import { ArrowLeft, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 
+// Game achievements are stored in localStorage
+function getGameAchievements() {
+  try { return JSON.parse(localStorage.getItem('game_achievements') || '{}'); } catch { return {}; }
+}
+export function unlockGameAchievement(key) {
+  const data = getGameAchievements();
+  if (!data[key]) { data[key] = new Date().toISOString(); localStorage.setItem('game_achievements', JSON.stringify(data)); }
+}
+
 function AchievementRow({ title, description, completed, completedDate, progress, total }) {
   return (
     <motion.div
@@ -50,6 +59,7 @@ function AchievementRow({ title, description, completed, completedDate, progress
 export default function Achievements() {
   const { activeCircle, activeCircleId, circles } = useCircle();
   const navigate = useNavigate();
+  const gameAch = getGameAchievements();
 
   const { data: members = [] } = useQuery({
     queryKey: ['circle-members', activeCircleId],
@@ -91,6 +101,30 @@ export default function Achievements() {
   const everyoneOnline = totalMembers > 0 && freeToday === totalMembers;
 
   const achievements = [
+    {
+      title: '5 Heads in a Row! 👑',
+      description: 'Flip heads 5 times in a row in Canopy Coin.',
+      completed: !!gameAch['five_heads'],
+      completedDate: gameAch['five_heads'] || null,
+      progress: gameAch['five_heads'] ? 5 : 0,
+      total: 5,
+    },
+    {
+      title: 'Perfect Memory! 🌴',
+      description: 'Complete Jungle Memory without a single mistake.',
+      completed: !!gameAch['perfect_memory'],
+      completedDate: gameAch['perfect_memory'] || null,
+      progress: gameAch['perfect_memory'] ? 1 : 0,
+      total: 1,
+    },
+    {
+      title: 'Safari Sixth Sense! 🐒',
+      description: 'Guess the number on your very first try in Safari Guess.',
+      completed: !!gameAch['first_try_guess'],
+      completedDate: gameAch['first_try_guess'] || null,
+      progress: gameAch['first_try_guess'] ? 1 : 0,
+      total: 1,
+    },
     {
       title: 'Circle created!',
       description: 'The host created this circle.',
