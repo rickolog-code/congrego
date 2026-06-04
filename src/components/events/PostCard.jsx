@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import CommentSection from './CommentSection';
 
 export default function PostCard({ post }) {
-  const { user } = useCircle();
+  const { user, activeCircleId } = useCircle();
   const queryClient = useQueryClient();
   const [showComments, setShowComments] = useState(false);
   const [showVoters, setShowVoters] = useState(null);
@@ -68,6 +68,44 @@ export default function PostCard({ post }) {
 
     await base44.entities.Post.update(post.id, { yes_votes: yesVotes, no_votes: noVotes });
     queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+
+    // Check if vote kick threshold is reached (only for vote posts with a target)
+    if (post.post_type === 'vote' && post.vote_target_email && activeCircleId) {
+      const members = await base44.entities.CircleMember.filter({ circle_id: activeCircleId });
+      const hostMember = members.find(m => m.role === 'host');
+      const hostEmail = hostMember?.user_email;
+
+      // Calculate effective yes vote weight (host = 2, others = 1)
+      const yesWeight = yesVotes.reduce((sum, email) => sum + (email === hostEmail ? 2 : 1), 0);
+
+      // Total possible votes weight
+      const totalWeight = members.reduce((sum, m) => sum + (m.user_email === hostEmail ? 2 : 1), 0);
+
+      // Majority = more than half of total weight
+      if (yesWeight > totalWeight / 2) {
+        // Kick the target member
+        const targetMember = members.find(m => m.user_email === post.vote_target_email);
+        if (targetMember) {
+          await base44.entities.CircleMember.delete(targetMember.id);
+
+          // Update circle member count
+          const circle = (await base44.entities.Circle.filter({ id: activeCircleId }))[0];
+          if (circle) {
+            await base44.entities.Circle.update(activeCircleId, {
+              member_count: Math.max(0, (circle.member_count || 1) - 1),
+            });
+          }
+
+          // Update the vote post content to reflect the result
+          await base44.entities.Post.update(post.id, {
+            content: post.content + '\n\n✅ Vote passed — member has been removed from the circle.',
+          });
+
+          queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+          queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+        }
+      }
+    }
   };
 
   const handleDelete = async () => {
