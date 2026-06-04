@@ -129,7 +129,7 @@ export default function Settings() {
       author_email: user.email,
       author_name: myMembership?.username || user.full_name,
       author_image: myMembership?.profile_image || '',
-      content: `🗳️ Vote to remove ${member.username || member.user_email} from the circle.`,
+      content: `Vote to remove ${member.username || member.user_email} from the circle.`,
       post_type: 'vote',
       vote_target_email: member.user_email,
       upvotes: [],

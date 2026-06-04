@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
-import { ThumbsUp, ThumbsDown, MessageCircle, MoreVertical, Calendar, Vote } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MessageCircle, MoreVertical, Calendar } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,42 +14,43 @@ import {
 import { Button } from '@/components/ui/button';
 import CommentSection from './CommentSection';
 
+function VoterAvatars({ emails, members }) {
+  return (
+    <div className="flex items-center -space-x-1.5 ml-1">
+      {emails.slice(0, 5).map((email) => {
+        const m = members.find(m => m.user_email === email);
+        return m?.profile_image ? (
+          <img key={email} src={m.profile_image} alt="" className="w-5 h-5 rounded-full border border-white object-cover" />
+        ) : (
+          <div key={email} className="w-5 h-5 rounded-full border border-white bg-primary/20 flex items-center justify-center">
+            <span className="text-[8px] font-bold text-primary">{(m?.username || email)?.[0]?.toUpperCase()}</span>
+          </div>
+        );
+      })}
+      {emails.length > 5 && (
+        <div className="w-5 h-5 rounded-full border border-white bg-muted flex items-center justify-center">
+          <span className="text-[7px] font-bold text-muted-foreground">+{emails.length - 5}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PostCard({ post }) {
   const { user, activeCircleId } = useCircle();
   const queryClient = useQueryClient();
   const [showComments, setShowComments] = useState(false);
-  const [showVoters, setShowVoters] = useState(null);
 
   const upvotes = post.upvotes || [];
   const downvotes = post.downvotes || [];
-  const hasUpvoted = upvotes.includes(user?.email);
-  const hasDownvoted = downvotes.includes(user?.email);
 
-  const handleVote = async (type) => {
-    const newUp = [...upvotes];
-    const newDown = [...downvotes];
-
-    if (type === 'up') {
-      if (hasUpvoted) {
-        newUp.splice(newUp.indexOf(user.email), 1);
-      } else {
-        newUp.push(user.email);
-        const di = newDown.indexOf(user.email);
-        if (di !== -1) newDown.splice(di, 1);
-      }
-    } else {
-      if (hasDownvoted) {
-        newDown.splice(newDown.indexOf(user.email), 1);
-      } else {
-        newDown.push(user.email);
-        const ui = newUp.indexOf(user.email);
-        if (ui !== -1) newUp.splice(ui, 1);
-      }
-    }
-
-    await base44.entities.Post.update(post.id, { upvotes: newUp, downvotes: newDown });
-    queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
-  };
+  // Fetch members for vote post avatar display
+  const isVotePost = post.post_type === 'vote';
+  const { data: members = [] } = useQuery({
+    queryKey: ['circle-members', activeCircleId],
+    queryFn: () => base44.entities.CircleMember.filter({ circle_id: activeCircleId }),
+    enabled: !!activeCircleId && isVotePost,
+  });
 
   const handleSpecialVote = async (vote) => {
     const yesVotes = [...(post.yes_votes || [])];
@@ -113,121 +113,176 @@ export default function PostCard({ post }) {
     queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
   };
 
-  const isVotePost = post.post_type === 'vote';
   const isCalendarPost = post.post_type === 'calendar_event';
   const isSuggestion = post.post_type === 'suggestion';
+
+  // Extract target name from vote_target_email or post content
+  const kickTargetName = post.vote_target_email
+    ? (members.find(m => m.user_email === post.vote_target_email)?.username || post.vote_target_email?.split('@')[0])
+    : null;
+
+  const yesVoters = post.yes_votes || [];
+  const noVoters = post.no_votes || [];
+  const hasVotedYes = yesVoters.includes(user?.email);
+  const hasVotedNo = noVoters.includes(user?.email);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-card rounded-2xl border shadow-sm overflow-hidden ${
-        isVotePost ? 'border-amber-300 bg-amber-50/30' :
-        isCalendarPost ? 'border-[#CFB07E] border-2' :
-        isSuggestion ? 'border-[#00c56c]/60 bg-[#00c56c]/5 border-2' :
-        'border-border'
+      className={`bg-card rounded-2xl shadow-sm overflow-hidden ${
+        isVotePost ? 'border-[3px] border-[#ff2400]' :
+        isCalendarPost ? 'border-2 border-[#CFB07E]' :
+        isSuggestion ? 'border-2 border-[#00c56c]/60 bg-[#00c56c]/5' :
+        'border border-border'
       }`}
     >
       {/* Type Badge */}
       {(isVotePost || isCalendarPost || isSuggestion) && (
         <div className={`px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 ${
-          isVotePost ? 'bg-amber-100 text-amber-800' :
+          isVotePost ? 'bg-[#8b0000]' :
           isCalendarPost ? 'bg-primary/10 text-primary' :
           'bg-[#00c56c]/10 text-[#00c56c]'
         }`}>
-          {isVotePost ? <Vote className="w-3 h-3" /> : isCalendarPost ? <Calendar className="w-3 h-3" /> : <span>🦎</span>}
-          {isVotePost ? 'Group Vote' : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
+          {isCalendarPost && <Calendar className="w-3 h-3" />}
+          {isSuggestion && <span>🦎</span>}
+          {isVotePost ? (
+            <span
+              className="italic font-bold text-sm"
+              style={{
+                color: '#ff000d',
+                WebkitTextStroke: '0.5px black',
+                textShadow: '0 0 1px black',
+              }}
+            >
+              Kick {kickTargetName} from the circle
+            </span>
+          ) : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
         </div>
       )}
 
       <div className="p-4 space-y-3">
-        {/* Author row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {post.author_image ? (
-              <img src={post.author_image} alt="" className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xs font-bold text-primary">
-                  {post.author_name?.[0]?.toUpperCase() || '?'}
-                </span>
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-semibold">{post.author_name}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {post.created_date ? format(new Date(post.created_date), 'MMM d, h:mm a') : ''}
-              </p>
-            </div>
-          </div>
-
-          {post.author_email === user?.email && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-1.5 rounded-lg hover:bg-muted">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-xl">
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                  Delete post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-
-        {/* Content */}
-        <p className="text-sm leading-relaxed">{post.content}</p>
-
-        {post.image_url && (
-          <img src={post.image_url} alt="" className="rounded-xl w-full max-h-64 object-cover" />
-        )}
-
-        {/* Special Vote Buttons */}
-        {isVotePost && (
+        {/* For vote posts: only show buttons, no author row or content */}
+        {isVotePost ? (
           <div className="flex gap-2">
-            <Button
-              variant={post.yes_votes?.includes(user?.email) ? 'default' : 'outline'}
-              size="sm"
-              className="flex-1 rounded-xl"
+            {/* YES button */}
+            <button
               onClick={() => handleSpecialVote('yes')}
+              className={`flex-1 rounded-xl py-2.5 px-3 text-sm font-bold border-2 transition-all flex items-center justify-center gap-1 ${
+                hasVotedYes
+                  ? 'bg-green-600 border-green-600 text-white'
+                  : 'bg-green-50 border-green-400 text-green-700 hover:bg-green-100'
+              }`}
             >
-              Yes ({post.yes_votes?.length || 0})
-            </Button>
-            <Button
-              variant={post.no_votes?.includes(user?.email) ? 'destructive' : 'outline'}
-              size="sm"
-              className="flex-1 rounded-xl"
+              <span>Yes</span>
+              {yesVoters.length > 0 && <VoterAvatars emails={yesVoters} members={members} />}
+            </button>
+            {/* NO button */}
+            <button
               onClick={() => handleSpecialVote('no')}
+              className={`flex-1 rounded-xl py-2.5 px-3 text-sm font-bold border-2 transition-all flex items-center justify-center gap-1 ${
+                hasVotedNo
+                  ? 'bg-red-600 border-red-600 text-white'
+                  : 'bg-red-50 border-red-400 text-red-700 hover:bg-red-100'
+              }`}
             >
-              No ({post.no_votes?.length || 0})
-            </Button>
+              <span>No</span>
+              {noVoters.length > 0 && <VoterAvatars emails={noVoters} members={members} />}
+            </button>
           </div>
+        ) : (
+          <>
+            {/* Author row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {post.author_image ? (
+                  <img src={post.author_image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">
+                      {post.author_name?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold">{post.author_name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {post.created_date ? format(new Date(post.created_date), 'MMM d, h:mm a') : ''}
+                  </p>
+                </div>
+              </div>
+
+              {post.author_email === user?.email && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 rounded-lg hover:bg-muted">
+                      <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl">
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                      Delete post
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+
+            {/* Content */}
+            <p className="text-sm leading-relaxed">{post.content}</p>
+
+            {post.image_url && (
+              <img src={post.image_url} alt="" className="rounded-xl w-full max-h-64 object-cover" />
+            )}
+          </>
         )}
 
-        {/* Actions */}
+        {/* Actions — thumbs hidden for vote posts, comment always shown */}
         <div className="flex items-center gap-1 pt-1 border-t border-border">
-          <button
-            onClick={() => handleVote('up')}
-            onContextMenu={(e) => { e.preventDefault(); setShowVoters('up'); }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-              hasUpvoted ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
-            }`}
-          >
-            <ThumbsUp className="w-3.5 h-3.5" />
-            {upvotes.length > 0 && upvotes.length}
-          </button>
-          <button
-            onClick={() => handleVote('down')}
-            onContextMenu={(e) => { e.preventDefault(); setShowVoters('down'); }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-              hasDownvoted ? 'bg-destructive/10 text-destructive' : 'hover:bg-muted text-muted-foreground'
-            }`}
-          >
-            <ThumbsDown className="w-3.5 h-3.5" />
-            {downvotes.length > 0 && downvotes.length}
-          </button>
+          {!isVotePost && (
+            <>
+              <button
+                onClick={() => {
+                  const newUp = [...upvotes];
+                  const newDown = [...downvotes];
+                  if (upvotes.includes(user?.email)) {
+                    newUp.splice(newUp.indexOf(user.email), 1);
+                  } else {
+                    newUp.push(user.email);
+                    const di = newDown.indexOf(user.email);
+                    if (di !== -1) newDown.splice(di, 1);
+                  }
+                  base44.entities.Post.update(post.id, { upvotes: newUp, downvotes: newDown })
+                    .then(() => queryClient.invalidateQueries({ queryKey: ['circle-posts'] }));
+                }}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  upvotes.includes(user?.email) ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
+                }`}
+              >
+                👍 {upvotes.length > 0 && upvotes.length}
+              </button>
+              <button
+                onClick={() => {
+                  const newUp = [...upvotes];
+                  const newDown = [...downvotes];
+                  if (downvotes.includes(user?.email)) {
+                    newDown.splice(newDown.indexOf(user.email), 1);
+                  } else {
+                    newDown.push(user.email);
+                    const ui = newUp.indexOf(user.email);
+                    if (ui !== -1) newUp.splice(ui, 1);
+                  }
+                  base44.entities.Post.update(post.id, { upvotes: newUp, downvotes: newDown })
+                    .then(() => queryClient.invalidateQueries({ queryKey: ['circle-posts'] }));
+                }}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  downvotes.includes(user?.email) ? 'bg-destructive/10 text-destructive' : 'hover:bg-muted text-muted-foreground'
+                }`}
+              >
+                👎 {downvotes.length > 0 && downvotes.length}
+              </button>
+            </>
+          )}
           <button
             onClick={() => setShowComments(!showComments)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-muted text-muted-foreground"
@@ -239,23 +294,6 @@ export default function PostCard({ post }) {
 
         {showComments && <CommentSection postId={post.id} />}
       </div>
-
-      {/* Voters Dialog */}
-      <Dialog open={!!showVoters} onOpenChange={() => setShowVoters(null)}>
-        <DialogContent className="rounded-3xl max-w-xs">
-          <DialogHeader>
-            <DialogTitle>{showVoters === 'up' ? 'Upvotes' : 'Downvotes'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            {(showVoters === 'up' ? upvotes : downvotes).map((email) => (
-              <p key={email} className="text-sm">{email}</p>
-            ))}
-            {(showVoters === 'up' ? upvotes : downvotes).length === 0 && (
-              <p className="text-sm text-muted-foreground">No votes yet.</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }
