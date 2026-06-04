@@ -138,7 +138,7 @@ export default function Home() {
             className="fixed z-10 right-3 text-xs font-bold text-foreground/70 pointer-events-none"
             style={{ top: 'calc(42vw + 4px)', maxTop: 234 }}
           >
-            🎮 Tap to play!
+            Tap to play!
           </motion.p>
         )}
       </AnimatePresence>
