@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Plus, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,8 +16,10 @@ import HeaderMenu from '@/components/home/HeaderMenu';
 export default function Home() {
   const { user, activeCircle, activeCircleId, myMembership, circles, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [monkeyHovered, setMonkeyHovered] = useState(false);
 
   const { data: members = [] } = useQuery({
     queryKey: ['circle-members', activeCircleId],
@@ -98,13 +101,43 @@ export default function Home() {
 
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — fixed top right */}
-      <img
-        src={MONKEY_IMG}
-        alt=""
-        className="pointer-events-none fixed top-0 right-0 z-0"
+      {/* Monkey + vine — fixed top right, clickable */}
+      <div
+        className="fixed top-0 right-0 z-10 cursor-pointer select-none"
         style={{ width: '90vw', maxWidth: 500 }}
-      />
+        onMouseEnter={() => setMonkeyHovered(true)}
+        onMouseLeave={() => setMonkeyHovered(false)}
+        onTouchStart={() => setMonkeyHovered(true)}
+        onTouchEnd={() => setMonkeyHovered(false)}
+        onClick={() => navigate('/games')}
+      >
+        <motion.img
+          src={MONKEY_IMG}
+          alt="Monkey"
+          className="w-full"
+          animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)' }}
+          transition={{ duration: 0.2 }}
+        />
+        {/* Game controller badge */}
+        <div className="absolute pointer-events-none" style={{ bottom: '20%', right: '30%' }}>
+          <span className="text-2xl drop-shadow-lg">🎮</span>
+        </div>
+        {/* Hover tooltip */}
+        <AnimatePresence>
+          {monkeyHovered && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.85 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-1/2 -translate-x-1/2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
+              style={{ top: '40%' }}
+            >
+              🎮 Monkey around?
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Tree — fixed bottom left, sitting on top of nav */}
       <img

@@ -12,6 +12,7 @@ import Events from '@/pages/Events';
 import CalendarPage from '@/pages/CalendarPage';
 import Settings from '@/pages/Settings';
 import Achievements from '@/pages/Achievements';
+import Games from '@/pages/Games';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
         </Route>
         <Route path="/settings" element={<Settings />} />
         <Route path="/achievements" element={<Achievements />} />
+        <Route path="/games" element={<Games />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </CircleProvider>
