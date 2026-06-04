@@ -148,7 +148,7 @@ export default function PostCard({ post }) {
           {isSuggestion && <span>🦎</span>}
           {isVotePost ? (
             <span className="font-extrabold text-sm tracking-wide">
-            Vote to kick {kickTargetName}
+            Kick {kickTargetName} from the circle
             </span>
           ) : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
         </div>
