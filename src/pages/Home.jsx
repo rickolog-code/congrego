@@ -156,7 +156,7 @@ export default function Home() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative z-20">
         <div className="flex items-center gap-3">
           <div className="relative">
             {myMembership?.profile_image ? (
