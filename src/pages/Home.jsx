@@ -116,20 +116,16 @@ export default function Home() {
           animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)', opacity: 0 }}
           transition={{ duration: 0.2 }}
         />
-        {/* Controller in the monkey's lower-right hand */}
-        <div className="absolute pointer-events-none" style={{ bottom: '22%', right: '34%' }}>
-          <span className="text-xl drop-shadow-lg">🎮</span>
-        </div>
-        {/* Hover tooltip */}
+        {/* Hover tooltip — just below the monkey image */}
         <AnimatePresence>
           {monkeyHovered && (
             <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.85 }}
+              initial={{ opacity: 0, y: -4, scale: 0.85 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.85 }}
+              exit={{ opacity: 0, y: -4, scale: 0.85 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-1/2 -translate-x-1/2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap pointer-events-none"
-              style={{ top: '40%' }}
+              className="absolute right-2 bg-foreground text-background text-sm font-extrabold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap pointer-events-none"
+              style={{ top: '100%', marginTop: 4 }}
             >
               🎮 Monkey around?
             </motion.div>
