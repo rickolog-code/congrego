@@ -140,7 +140,7 @@ export default function PostCard({ post }) {
       {/* Type Badge */}
       {(isVotePost || isCalendarPost || isSuggestion) && (
         <div className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 ${
-          isVotePost ? 'bg-red-950 text-white' :
+          isVotePost ? 'bg-[#cc1a00] text-white' :
           isCalendarPost ? 'bg-primary/10 text-primary' :
           'bg-[#00c56c]/10 text-[#00c56c]'
         }`}>
@@ -148,7 +148,7 @@ export default function PostCard({ post }) {
           {isSuggestion && <span>🦎</span>}
           {isVotePost ? (
             <span className="font-extrabold text-sm tracking-wide">
-              ⚠️ Vote to kick {kickTargetName}
+            Vote to kick {kickTargetName}
             </span>
           ) : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
         </div>
