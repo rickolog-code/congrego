@@ -16,20 +16,20 @@ import CommentSection from './CommentSection';
 
 function VoterAvatars({ emails, members }) {
   return (
-    <div className="flex items-center -space-x-1.5 ml-1">
-      {emails.slice(0, 5).map((email) => {
+    <div className="flex flex-wrap gap-1 mt-1 justify-center">
+      {emails.slice(0, 8).map((email) => {
         const m = members.find(m => m.user_email === email);
         return m?.profile_image ? (
-          <img key={email} src={m.profile_image} alt="" className="w-5 h-5 rounded-full border border-white object-cover" />
+          <img key={email} src={m.profile_image} alt="" className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm" />
         ) : (
-          <div key={email} className="w-5 h-5 rounded-full border border-white bg-primary/20 flex items-center justify-center">
-            <span className="text-[8px] font-bold text-primary">{(m?.username || email)?.[0]?.toUpperCase()}</span>
+          <div key={email} className="w-7 h-7 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center shadow-sm">
+            <span className="text-[10px] font-bold text-gray-500">{(m?.username || email)?.[0]?.toUpperCase()}</span>
           </div>
         );
       })}
-      {emails.length > 5 && (
-        <div className="w-5 h-5 rounded-full border border-white bg-muted flex items-center justify-center">
-          <span className="text-[7px] font-bold text-muted-foreground">+{emails.length - 5}</span>
+      {emails.length > 8 && (
+        <div className="w-7 h-7 rounded-full border-2 border-white bg-muted flex items-center justify-center shadow-sm">
+          <span className="text-[8px] font-bold text-muted-foreground">+{emails.length - 8}</span>
         </div>
       )}
     </div>
@@ -139,23 +139,16 @@ export default function PostCard({ post }) {
     >
       {/* Type Badge */}
       {(isVotePost || isCalendarPost || isSuggestion) && (
-        <div className={`px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 ${
-          isVotePost ? 'bg-[#8b0000]' :
+        <div className={`px-4 py-2 text-xs font-bold flex items-center gap-1.5 ${
+          isVotePost ? 'bg-red-950 text-white' :
           isCalendarPost ? 'bg-primary/10 text-primary' :
           'bg-[#00c56c]/10 text-[#00c56c]'
         }`}>
           {isCalendarPost && <Calendar className="w-3 h-3" />}
           {isSuggestion && <span>🦎</span>}
           {isVotePost ? (
-            <span
-              className="italic font-bold text-sm"
-              style={{
-                color: '#ff000d',
-                WebkitTextStroke: '0.5px black',
-                textShadow: '0 0 1px black',
-              }}
-            >
-              Kick {kickTargetName} from the circle
+            <span className="font-extrabold text-sm tracking-wide">
+              ⚠️ Vote to kick {kickTargetName}
             </span>
           ) : isCalendarPost ? 'Calendar Event' : 'Grego suggested'}
         </div>
@@ -164,29 +157,31 @@ export default function PostCard({ post }) {
       <div className="p-4 space-y-3">
         {/* For vote posts: only show buttons, no author row or content */}
         {isVotePost ? (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {/* YES button */}
             <button
               onClick={() => handleSpecialVote('yes')}
-              className={`flex-1 rounded-xl py-2.5 px-3 text-sm font-bold border-2 transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 rounded-2xl py-4 px-3 font-bold border-2 transition-all flex flex-col items-center gap-2 min-h-[100px] ${
                 hasVotedYes
                   ? 'bg-green-600 border-green-600 text-white'
                   : 'bg-green-50 border-green-400 text-green-700 hover:bg-green-100'
               }`}
             >
-              <span>Yes</span>
+              <span className="text-base">✅ Yes</span>
+              <span className={`text-xs font-normal ${hasVotedYes ? 'text-green-100' : 'text-green-600'}`}>{yesVoters.length} vote{yesVoters.length !== 1 ? 's' : ''}</span>
               {yesVoters.length > 0 && <VoterAvatars emails={yesVoters} members={members} />}
             </button>
             {/* NO button */}
             <button
               onClick={() => handleSpecialVote('no')}
-              className={`flex-1 rounded-xl py-2.5 px-3 text-sm font-bold border-2 transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 rounded-2xl py-4 px-3 font-bold border-2 transition-all flex flex-col items-center gap-2 min-h-[100px] ${
                 hasVotedNo
                   ? 'bg-red-600 border-red-600 text-white'
                   : 'bg-red-50 border-red-400 text-red-700 hover:bg-red-100'
               }`}
             >
-              <span>No</span>
+              <span className="text-base">❌ No</span>
+              <span className={`text-xs font-normal ${hasVotedNo ? 'text-red-100' : 'text-red-600'}`}>{noVoters.length} vote{noVoters.length !== 1 ? 's' : ''}</span>
               {noVoters.length > 0 && <VoterAvatars emails={noVoters} members={members} />}
             </button>
           </div>
