@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { useNavigate } from 'react-router-dom';
+
 import { format } from 'date-fns';
 import { Plus, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { Button } from '@/components/ui/button';
 import CircleSwitcher from '@/components/home/CircleSwitcher';
 import AvailabilityCard from '@/components/home/AvailabilityCard';
@@ -16,10 +17,9 @@ import HeaderMenu from '@/components/home/HeaderMenu';
 export default function Home() {
   const { user, activeCircle, activeCircleId, myMembership, circles, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
-  const [monkeyHovered, setMonkeyHovered] = useState(false);
+  
 
   const { data: members = [] } = useQuery({
     queryKey: ['circle-members', activeCircleId],
@@ -101,47 +101,13 @@ export default function Home() {
 
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — fixed top right, clickable */}
-      {/* Outer container: full image size for layout, but NOT the hover zone */}
+      {/* Monkey + vine — fixed top right, decorative only */}
       <div
         className="fixed top-0 right-0 z-10 pointer-events-none select-none"
         style={{ width: '90vw', maxWidth: 500 }}
       >
-        <img src={MONKEY_IMG} alt="Monkey" className="w-full" style={{ opacity: monkeyHovered ? 0 : 1, transition: 'opacity 0.15s' }} />
-        {/* Glowing version shown on hover */}
-        <motion.img
-          src={MONKEY_IMG}
-          alt=""
-          className="w-full absolute inset-0"
-          animate={monkeyHovered ? { filter: 'brightness(1.25) drop-shadow(0 0 18px rgba(251,191,36,0.7))' } : { filter: 'brightness(1) drop-shadow(0 0 0px transparent)', opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        />
+        <img src={MONKEY_IMG} alt="" className="w-full" />
       </div>
-      {/* Tight hover hitbox: just the vine+monkey area, top-right corner */}
-      <div
-        className="fixed z-10 cursor-pointer"
-        style={{ top: 0, right: 0, width: '30vw', maxWidth: 160, height: '42vw', maxHeight: 230 }}
-        onMouseEnter={() => setMonkeyHovered(true)}
-        onMouseLeave={() => setMonkeyHovered(false)}
-        onTouchStart={() => setMonkeyHovered(true)}
-        onTouchEnd={() => setMonkeyHovered(false)}
-        onClick={() => navigate('/games')}
-      />
-      {/* Tooltip fixed just below the monkey hitbox */}
-      <AnimatePresence>
-        {monkeyHovered && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className="fixed z-10 right-3 text-xs font-bold text-foreground/70 pointer-events-none"
-            style={{ top: 'calc(42vw + 4px)', maxTop: 234 }}
-          >
-            Tap to play!
-          </motion.p>
-        )}
-      </AnimatePresence>
 
       {/* Tree — fixed bottom left, sitting on top of nav */}
       <img
