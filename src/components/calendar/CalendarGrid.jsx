@@ -81,9 +81,10 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
                   : isSelected
                   ? 'bg-primary text-primary-foreground'
                   : isToday
-                  ? 'bg-primary/20 text-primary font-bold'
+                  ? 'font-bold'
                   : 'text-foreground hover:bg-muted'
               }`}
+              style={isToday && !isSelected ? { color: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.18)' } : {}}
             >
               {/* Hatch pattern for days with events */}
               {hasEvents && !isSelected && isCurrentMonth && (

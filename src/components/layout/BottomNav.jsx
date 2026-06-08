@@ -25,18 +25,23 @@ export default function BottomNav() {
               {isActive && (
                 <motion.div
                   layoutId="bottomNavIndicator"
-                  className="absolute -top-1 w-8 h-1 bg-primary rounded-full"
+                  className="absolute -top-1 w-8 h-1 rounded-full"
+                  style={{ backgroundColor: '#1D9E75' }}
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
               <Icon
                 className={`w-5 h-5 transition-colors duration-200 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
+                  isActive ? '' : 'text-muted-foreground'
                 }`}
+                style={isActive ? { color: '#1D9E75' } : {}}
               />
-              <span className={`text-[10px] font-semibold transition-colors duration-200 ${
-                isActive ? 'text-primary' : 'text-muted-foreground'
-              }`}>
+              <span
+                className={`text-[10px] font-semibold transition-colors duration-200 ${
+                  isActive ? '' : 'text-muted-foreground'
+                }`}
+                style={isActive ? { color: '#1D9E75' } : {}}
+              >
                 {label}
               </span>
             </Link>
