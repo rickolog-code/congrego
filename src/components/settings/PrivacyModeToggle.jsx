@@ -63,7 +63,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
             <motion.div
               className="absolute top-0.5 w-5 h-5 rounded-full shadow-md"
               animate={{ left: enabled ? '26px' : '2px' }}
-              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              transition={{ type: 'spring', stiffness: 80, damping: 18 }}
               style={enabled ? {
                 background: '#ffffff',
                 boxShadow: '0 0 6px rgba(255,255,255,0.6)',
