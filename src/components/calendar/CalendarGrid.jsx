@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate, busyByDate = {}, currentUser, colorByEmail = {} }) {
+export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate, busyByDate = {}, currentUser, colorByEmail = {}, holidays = {} }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -69,6 +69,7 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
           const key = format(day, 'yyyy-MM-dd');
           const busyEmails = busyByDate[key] || [];
           const isMeBusy = currentUser && busyEmails.includes(currentUser);
+          const holiday = holidays[key];
 
           return (
             <motion.button
@@ -99,6 +100,13 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
               )}
 
               {format(day, 'd')}
+
+              {/* Holiday emoji indicator */}
+              {holiday && isCurrentMonth && (
+                <span className="absolute top-0.5 right-1 text-[8px] leading-none pointer-events-none select-none" title={holiday.name}>
+                  {holiday.emoji}
+                </span>
+              )}
 
               {/* Colored dots per user — events + busy users */}
               {(() => {

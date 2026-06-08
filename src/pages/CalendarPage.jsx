@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
+import { format, isSameDay, eachDayOfInterval, parseISO, getDay, getYear } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { MapPin, Clock, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
@@ -13,6 +13,8 @@ import CreateEventModal from '@/components/calendar/CreateEventModal';
 import SetBusyButton from '@/components/calendar/SetBusyButton';
 import BusyDatePickOverlay from '@/components/calendar/BusyDatePickOverlay';
 import EditBusyEventModal from '@/components/calendar/EditBusyEventModal';
+import HolidayBadge from '@/components/calendar/HolidayBadge';
+import { getHolidays } from '@/lib/holidays';
 
 function cleanTitle(title) {
   return title?.replace(/^\[gcal:[^\]]+\]\s*/, '') || '';
@@ -78,6 +80,11 @@ export default function CalendarPage() {
       });
     }
   });
+
+  // Build holidays for current year and next (so December→January works)
+  const now = new Date();
+  const holidays = { ...getHolidays(now.getFullYear()), ...getHolidays(now.getFullYear() + 1) };
+  const selectedHoliday = selectedDate ? holidays[format(selectedDate, 'yyyy-MM-dd')] : null;
 
   const selectedEvents = selectedDate
     ? events.filter((e) => {
@@ -159,6 +166,7 @@ export default function CalendarPage() {
               busyByDate={busyByDate}
               currentUser={user?.email}
               colorByEmail={colorByEmail}
+              holidays={holidays}
             />
 
             {/* Member Color Legend */}
@@ -180,6 +188,8 @@ export default function CalendarPage() {
           {selectedDate && !datePickRequest && (
             <div className="space-y-3">
               <h3 className="text-base font-bold">{format(selectedDate, 'EEEE, MMMM d')}</h3>
+
+              {selectedHoliday && <HolidayBadge holiday={selectedHoliday} />}
 
               <Button
                 onClick={() => setShowCreate(true)}
