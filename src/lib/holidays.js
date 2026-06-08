@@ -44,25 +44,18 @@ export function getHolidays(year) {
   add(2, 14, "Valentine's Day", '💝');
   add(3, 17, "St. Patrick's Day", '🍀');
   add(4, 1, "April Fools' Day", '🃏');
-  add(6, 19, 'Juneteenth', '✊');
-  add(7, 4, 'Independence Day', '🇺🇸');
   add(10, 31, 'Halloween', '🎃');
-  add(11, 11, "Veterans Day", '🎖️');
   add(12, 24, 'Christmas Eve', '🌟');
   add(12, 25, 'Christmas Day', '🎄');
-  add(12, 26, 'Kwanzaa Begins', '🕯️');
   add(12, 31, "New Year's Eve", '🥂');
 
   // Easter Sunday
   add(easter.month, easter.day, 'Easter', '🐣');
 
   // Floating holidays
-  add(1, nthWeekday(1, 1, 3), "Martin Luther King Jr. Day", '✊');
-  add(2, nthWeekday(2, 1, 3), "Presidents' Day", '🏛️');
   add(5, nthWeekday(5, 0, 2), "Mother's Day", '💐');
   add(6, nthWeekday(6, 0, 3), "Father's Day", '👔');
   add(9, nthWeekday(9, 1, 1), 'Labor Day', '⚒️');
-  add(10, nthWeekday(10, 1, 2), 'Columbus Day', '⚓');
   add(11, nthWeekday(11, 4, 4), 'Thanksgiving', '🦃');
 
   // Memorial Day = last Monday of May
