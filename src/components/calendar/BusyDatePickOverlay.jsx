@@ -1,111 +1,89 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, isSameMonth, isSameDay, addMonths, subMonths,
-  isWithinInterval, isBefore, getDay
+  isWithinInterval, isBefore
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
-/**
- * Renders INSIDE the CalendarPage scroll area (not a full-screen takeover),
- * replacing the normal CalendarGrid. The page chrome (header, bottom nav) stays visible.
- * 
- * Range selection draws a single connected pill border around all selected days,
- * exactly like the reference image — one glowing red outline, rounded only on the
- * outer corners of the first and last cell.
- */
 export default function BusyDatePickOverlay({ singleMode, members = [], onConfirm, onCancel }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const gridRef = useRef(null);
+  const [gridRect, setGridRect] = useState(null);
 
   const monthStart = startOfMonth(currentMonth);
   const calStart = startOfWeek(monthStart);
   const calEnd = endOfWeek(endOfMonth(currentMonth));
-
   const days = [];
   let d = calStart;
   while (d <= calEnd) { days.push(d); d = addDays(d, 1); }
 
+  // Measure grid after render
+  useEffect(() => {
+    if (gridRef.current) {
+      const rect = gridRef.current.getBoundingClientRect();
+      setGridRect({ width: rect.width, height: rect.height });
+    }
+  });
+
   const handleDayClick = (day) => {
     if (!isSameMonth(day, currentMonth)) return;
-    if (singleMode) {
-      setStartDate(day);
-      setEndDate(day);
-      return;
-    }
+    if (singleMode) { setStartDate(day); setEndDate(day); return; }
     if (!startDate || (startDate && endDate)) {
-      setStartDate(day);
-      setEndDate(null);
+      setStartDate(day); setEndDate(null);
     } else {
-      if (isBefore(day, startDate)) {
-        setEndDate(startDate);
-        setStartDate(day);
-      } else {
-        setEndDate(day);
-      }
+      if (isBefore(day, startDate)) { setEndDate(startDate); setStartDate(day); }
+      else setEndDate(day);
     }
   };
 
-  const isInRange = (day) => {
-    if (!startDate || !endDate) return false;
-    return isWithinInterval(day, { start: startDate, end: endDate });
-  };
+  const isInRange = (day) => startDate && endDate && isWithinInterval(day, { start: startDate, end: endDate });
   const isStart = (day) => startDate && isSameDay(day, startDate);
   const isEnd = (day) => endDate && isSameDay(day, endDate);
-
   const canConfirm = singleMode ? !!startDate : (!!startDate && !!endDate);
 
-  // Build row segments for the border overlay
-  // Each selected day belongs to a row (0-indexed). We group consecutive selected days by row.
-  const getRowSegments = () => {
-    if (!startDate || !endDate) return [];
-    const segments = []; // { rowIndex, startCol, endCol }
-    let rowIdx = 0;
-    for (let i = 0; i < days.length; i += 7) {
-      const rowDays = days.slice(i, i + 7);
+  // Build pill rects in real pixels for each row segment of selected range
+  const buildPills = useCallback(() => {
+    if (!startDate || !endDate || !gridRect) return [];
+    const cellW = gridRect.width / 7;
+    const cellH = gridRect.height / Math.ceil(days.length / 7);
+    const r = 14; // pill corner radius in px
+    const pad = 3; // vertical inset so pill is smaller than full cell height
+
+    const pills = [];
+    for (let row = 0; row < Math.ceil(days.length / 7); row++) {
       let segStart = null;
       let segEnd = null;
-      rowDays.forEach((day, col) => {
+      for (let col = 0; col < 7; col++) {
+        const day = days[row * 7 + col];
+        if (!day) continue;
         if (isInRange(day) && isSameMonth(day, currentMonth)) {
           if (segStart === null) segStart = col;
           segEnd = col;
         }
-      });
-      if (segStart !== null) {
-        segments.push({ rowIdx, startCol: segStart, endCol: segEnd });
       }
-      rowIdx++;
+      if (segStart !== null) {
+        pills.push({
+          x: segStart * cellW,
+          y: row * cellH + pad,
+          w: (segEnd - segStart + 1) * cellW,
+          h: cellH - pad * 2,
+          r,
+        });
+      }
     }
-    return segments;
-  };
+    return pills;
+  }, [startDate, endDate, gridRect, days, currentMonth]);
 
-  const rowSegments = (startDate && endDate) ? getRowSegments() : [];
+  const pills = buildPills();
 
   return (
     <div className="space-y-4">
-      {/* Glowing header */}
-      <div className="text-center pt-2 relative">
-        <h1
-          className="text-4xl font-extrabold"
-          style={{
-            color: '#f59e0b',
-            textShadow: '0 0 18px rgba(245,158,11,0.9), 0 0 36px rgba(245,158,11,0.5)',
-          }}
-        >
-          Choose a date
-        </h1>
-        {!singleMode && (
-          <p className="text-xs text-muted-foreground mt-1">
-            {!startDate ? 'Tap start date' : !endDate ? 'Tap end date' : `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d')}`}
-          </p>
-        )}
-      </div>
-
-      {/* Golden-bordered calendar card */}
+      {/* Golden-bordered calendar card — same style as normal CalendarGrid */}
       <div
         className="bg-card rounded-3xl p-4"
         style={{
@@ -131,9 +109,8 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
           ))}
         </div>
 
-        {/* Grid — relative container so we can overlay the pill border SVG */}
+        {/* Grid */}
         <div className="relative" ref={gridRef}>
-          {/* Day cells — no gap, flush grid */}
           <div className="grid grid-cols-7">
             {days.map((day, idx) => {
               const inRange = isInRange(day);
@@ -142,17 +119,15 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isToday = isSameDay(day, new Date());
               const isSelected = isS || isE;
-              const isSingleSel = isS && isSameDay(startDate, endDate || startDate);
 
               return (
                 <motion.button
                   key={idx}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleDayClick(day)}
-                  className={`relative h-11 text-sm font-medium flex items-center justify-center transition-colors z-10
+                  className={`relative h-11 text-sm font-medium flex items-center justify-center transition-colors
                     ${!isCurrentMonth ? 'text-muted-foreground/30 pointer-events-none' : ''}
-                    ${inRange && isCurrentMonth && !isSelected ? 'bg-red-50/80 text-red-600' : ''}
-                    ${isSelected && isCurrentMonth ? 'text-red-600 font-bold' : ''}
+                    ${(inRange || isSelected) && isCurrentMonth ? 'text-red-600 font-semibold' : ''}
                     ${!inRange && !isSelected && isCurrentMonth ? (isToday ? 'text-primary font-bold' : 'text-foreground hover:bg-muted') : ''}
                   `}
                 >
@@ -162,82 +137,39 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
             })}
           </div>
 
-          {/* SVG pill border overlay — drawn row by row, connecting into one shape */}
-          {rowSegments.length > 0 && (() => {
-            const cellW = 100 / 7; // percent
-            const cellH = 44; // px, matches h-11
-            const r = 12; // border-radius for outer corners
-            const strokeW = 2.5;
-            const inset = strokeW / 2;
-
-            // Total height in px
-            const totalRows = Math.ceil(days.length / 7);
-            const svgH = totalRows * cellH;
-
-            // Build one SVG path that traces around all row segments
-            // We'll draw each row segment as a rect with selective rounded corners
-            return (
-              <svg
-                className="absolute inset-0 w-full pointer-events-none"
-                style={{ height: svgH }}
-                viewBox={`0 0 100 ${svgH}`}
-                preserveAspectRatio="none"
-              >
-                {rowSegments.map((seg, si) => {
-                  const x1 = seg.startCol * cellW + inset / 10;
-                  const x2 = (seg.endCol + 1) * cellW - inset / 10;
-                  const y1 = seg.rowIdx * cellH + inset;
-                  const y2 = (seg.rowIdx + 1) * cellH - inset;
-                  const w = x2 - x1;
-                  const h = y2 - y1;
-                  // radius in viewBox units (100 wide)
-                  const rPct = r / gridRef.current?.clientWidth * 100 || 3;
-
-                  // Is this the first / last row segment?
-                  const isFirst = si === 0;
-                  const isLast = si === rowSegments.length - 1;
-
-                  // Draw path with rounded corners only where appropriate
-                  // top-left: round if first row's start col
-                  // top-right: round if first row's end col
-                  // bottom-left: round if last row's start col  
-                  // bottom-right: round if last row's end col
-                  const tl = isFirst ? rPct : 0;
-                  const tr = isFirst ? rPct : 0;
-                  const br = isLast ? rPct : 0;
-                  const bl = isLast ? rPct : 0;
-
-                  const path = `
-                    M ${x1 + tl} ${y1}
-                    L ${x2 - tr} ${y1}
-                    Q ${x2} ${y1} ${x2} ${y1 + tr}
-                    L ${x2} ${y2 - br}
-                    Q ${x2} ${y2} ${x2 - br} ${y2}
-                    L ${x1 + bl} ${y2}
-                    Q ${x1} ${y2} ${x1} ${y2 - bl}
-                    L ${x1} ${y1 + tl}
-                    Q ${x1} ${y1} ${x1 + tl} ${y1}
-                    Z
-                  `;
-
-                  return (
-                    <g key={si}>
-                      {/* Fill */}
-                      <path d={path} fill="rgba(239,68,68,0.08)" />
-                      {/* Stroke — only draw the sides that are NOT shared with an adjacent row */}
-                      <path
-                        d={path}
-                        fill="none"
-                        stroke="#ef4444"
-                        strokeWidth={strokeW / 10 * (100 / (gridRef.current?.clientWidth || 370))}
-                        style={{ filter: 'drop-shadow(0 0 4px rgba(239,68,68,0.7))' }}
-                      />
-                    </g>
-                  );
-                })}
-              </svg>
-            );
-          })()}
+          {/* Pill outlines — one per row segment, pixel-perfect */}
+          {pills.length > 0 && gridRect && (
+            <svg
+              className="absolute inset-0 pointer-events-none overflow-visible"
+              width={gridRect.width}
+              height={gridRect.height}
+            >
+              <defs>
+                <filter id="red-glow">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {pills.map((p, i) => (
+                <rect
+                  key={i}
+                  x={p.x + 2}
+                  y={p.y}
+                  width={p.w - 4}
+                  height={p.h}
+                  rx={p.r}
+                  ry={p.r}
+                  fill="rgba(239,68,68,0.07)"
+                  stroke="#ef4444"
+                  strokeWidth="2"
+                  filter="url(#red-glow)"
+                />
+              ))}
+            </svg>
+          )}
         </div>
       </div>
 
@@ -251,6 +183,12 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
             </div>
           ))}
         </div>
+      )}
+
+      {!singleMode && (startDate || endDate) && (
+        <p className="text-xs text-center text-muted-foreground -mt-1">
+          {!startDate ? 'Tap start date' : !endDate ? 'Tap end date' : `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d')}`}
+        </p>
       )}
 
       {/* Confirm / Cancel */}
