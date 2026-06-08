@@ -7,9 +7,6 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { CircleProvider } from '@/lib/useCircleContext.jsx';
 import AppLayout from '@/components/layout/AppLayout';
-import Home from '@/pages/Home';
-import Events from '@/pages/Events';
-import CalendarPage from '@/pages/CalendarPage';
 import Settings from '@/pages/Settings';
 import Achievements from '@/pages/Achievements';
 
@@ -40,11 +37,9 @@ const AuthenticatedApp = () => {
   return (
     <CircleProvider>
       <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-        </Route>
+        <Route path="/" element={<AppLayout />} />
+        <Route path="/events" element={<AppLayout />} />
+        <Route path="/calendar" element={<AppLayout />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/achievements" element={<Achievements />} />
         <Route path="*" element={<PageNotFound />} />
