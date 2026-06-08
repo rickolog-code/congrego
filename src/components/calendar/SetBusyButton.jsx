@@ -148,8 +148,7 @@ export default function SetBusyButton({ onRequestDatePick }) {
             scaleY: useTransform([scaleY, scaleYv], ([a, b]) => Math.min(a, b)),
             rotate,
           }}
-          className="w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl select-none touch-none"
-          style={{ backgroundColor: '#1D9E75', boxShadow: '0 10px 25px rgba(29,158,117,0.4)' }}
+          className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30 select-none touch-none"
         >
           <CalendarPlus className="w-6 h-6" />
         </motion.button>
