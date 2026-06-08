@@ -12,7 +12,7 @@ export default function HeaderMenu({ hasRedDot }) {
         onClick={() => setOpen((v) => !v)}
         className="relative p-2 rounded-xl bg-card border border-border hover:bg-muted transition-colors"
       >
-        <MoreVertical className="w-5 h-5 text-muted-foreground mt-1" />
+        <MoreVertical className="w-5 h-5 text-muted-foreground" />
         {hasRedDot && (
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         )}
