@@ -13,7 +13,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
         style={enabled ? {
           background: 'linear-gradient(135deg, #0d1117 0%, #0f2419 50%, #0d1117 100%)',
           borderColor: 'rgba(29,158,117,0.5)',
-          boxShadow: '0 0 20px rgba(29,158,117,0.2), inset 0 0 30px rgba(29,158,117,0.05)',
+          boxShadow: '0 0 32px rgba(29,158,117,0.35), inset 0 0 40px rgba(29,158,117,0.08)',
         } : {
           background: 'hsl(var(--card))',
           borderColor: 'hsl(var(--border))',
@@ -26,7 +26,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-500"
               style={enabled ? {
                 background: 'linear-gradient(135deg, #1D9E75, #0d6e50)',
-                boxShadow: '0 0 12px rgba(29,158,117,0.5)',
+                boxShadow: '0 0 18px rgba(29,158,117,0.7)',
               } : { background: 'hsl(var(--muted))' }}
             >
               <ShieldCheck className="w-4 h-4" style={{ color: enabled ? '#fff' : 'hsl(var(--muted-foreground))' }} />
@@ -54,7 +54,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
             className="flex-shrink-0 relative w-12 h-6 rounded-full transition-all duration-400 focus:outline-none"
             style={enabled ? {
               background: 'linear-gradient(90deg, #1D9E75, #25d99e)',
-              boxShadow: '0 0 14px rgba(29,158,117,0.7)',
+              boxShadow: '0 0 22px rgba(29,158,117,0.9)',
             } : {
               background: 'hsl(var(--muted))',
               border: '1.5px solid hsl(var(--border))',
@@ -63,7 +63,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
             <motion.div
               className="absolute top-0.5 w-5 h-5 rounded-full shadow-md"
               animate={{ left: enabled ? '26px' : '2px' }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
               style={enabled ? {
                 background: '#ffffff',
                 boxShadow: '0 0 6px rgba(255,255,255,0.6)',
