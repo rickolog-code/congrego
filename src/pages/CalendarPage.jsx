@@ -2,13 +2,14 @@ import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { format, isSameDay, eachDayOfInterval, parseISO, getDay, isWithinInterval } from 'date-fns';
+import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import CreateEventModal from '@/components/calendar/CreateEventModal';
 import SetBusyButton from '@/components/calendar/SetBusyButton';
+import BusyDatePickOverlay from '@/components/calendar/BusyDatePickOverlay';
 
 function cleanTitle(title) {
   return title?.replace(/^\[gcal:[^\]]+\]\s*/, '') || '';
@@ -19,6 +20,10 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const eventsRef = useRef(null);
+
+  // Date-pick overlay state
+  // { for: 'busy'|'recurring', singleMode: bool, resolve: fn }
+  const [datePickRequest, setDatePickRequest] = useState(null);
 
   const { data: events = [] } = useQuery({
     queryKey: ['calendar-events', activeCircleId],
@@ -46,7 +51,6 @@ export default function CalendarPage() {
     dotsByDate[key].add(color);
   });
 
-  // Build busyByDate: date string -> array of user emails
   const busyByDate = {};
   const addBusy = (dateStr, email) => {
     if (!busyByDate[dateStr]) busyByDate[dateStr] = [];
@@ -57,7 +61,6 @@ export default function CalendarPage() {
     if (e.event_type === 'busy' && e.event_date) {
       addBusy(e.event_date, e.creator_email);
     } else if (e.event_type === 'recurring_busy' && e.busy_days_of_week?.length) {
-      // Generate dates for the next 3 months
       const rangeStart = e.busy_start_date ? parseISO(e.busy_start_date) : new Date();
       const rangeEnd = e.busy_end_date ? parseISO(e.busy_end_date) : new Date(new Date().getFullYear(), new Date().getMonth() + 4, 0);
       const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
@@ -69,21 +72,14 @@ export default function CalendarPage() {
     }
   });
 
-  const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-
   const selectedEvents = selectedDate
     ? events.filter((e) => {
-        if (e.event_type === 'busy') {
-          const [y, m, d] = e.event_date.split('-').map(Number);
-          return isSameDay(new Date(y, m - 1, d), selectedDate);
-        }
-        if (e.event_type === 'recurring_busy') return false; // handled separately
+        if (e.event_type === 'recurring_busy') return false;
         const [y, m, d] = e.event_date.split('-').map(Number);
         return isSameDay(new Date(y, m - 1, d), selectedDate);
       })
     : [];
 
-  // Recurring busy entries that cover the selected date
   const selectedRecurringBusy = selectedDate
     ? events.filter((e) => {
         if (e.event_type !== 'recurring_busy' || !e.busy_days_of_week?.length) return false;
@@ -102,6 +98,25 @@ export default function CalendarPage() {
     }, 100);
   };
 
+  // Called by SetBusyButton/modals when they need the user to pick dates
+  const requestDatePick = ({ singleMode, for: forWhom }) => {
+    return new Promise((resolve) => {
+      setDatePickRequest({ singleMode, for: forWhom, resolve });
+    });
+  };
+
+  const handleOverlayConfirm = (start, end) => {
+    const resolve = datePickRequest?.resolve;
+    setDatePickRequest(null);
+    resolve?.({ start, end });
+  };
+
+  const handleOverlayCancel = () => {
+    const resolve = datePickRequest?.resolve;
+    setDatePickRequest(null);
+    resolve?.(null);
+  };
+
   if (!activeCircleId) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -111,63 +126,109 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="px-4 pt-6 space-y-5 pb-8">
-      <div>
-        <h1 className="text-2xl font-extrabold">Calendar</h1>
-        {activeCircle && (
-          <p className="text-xs text-muted-foreground mt-0.5">{activeCircle.name}</p>
-        )}
-      </div>
-
-      <CalendarGrid
-        events={events}
-        dotsByDate={dotsByDate}
-        onDateSelect={handleDateSelect}
-        selectedDate={selectedDate}
-        busyByDate={busyByDate}
-        currentUser={user?.email}
-        colorByEmail={colorByEmail}
-      />
-
-      {/* Member Color Legend */}
-      {members.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
-          {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ background: m.theme_color || '#64B5F6' }}
-              />
-              <span className="text-xs text-muted-foreground">
-                {m.username || m.user_email?.split('@')[0]}
-              </span>
-            </div>
-          ))}
+    <>
+      <div className="px-4 pt-6 space-y-5 pb-8">
+        <div>
+          <h1 className="text-2xl font-extrabold">Calendar</h1>
+          {activeCircle && (
+            <p className="text-xs text-muted-foreground mt-0.5">{activeCircle.name}</p>
+          )}
         </div>
-      )}
 
-      {/* Selected Date Section */}
-      <div ref={eventsRef}>
-        {selectedDate && (
-          <div className="space-y-3">
-            <h3 className="text-base font-bold">
-              {format(selectedDate, 'EEEE, MMMM d')}
-            </h3>
+        <CalendarGrid
+          events={events}
+          dotsByDate={dotsByDate}
+          onDateSelect={handleDateSelect}
+          selectedDate={selectedDate}
+          busyByDate={busyByDate}
+          currentUser={user?.email}
+          colorByEmail={colorByEmail}
+        />
 
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="w-full rounded-2xl h-12 text-base font-bold shadow-md shadow-primary/20"
-            >
-              <Plus className="w-5 h-5 mr-2" /> Create Event
-            </Button>
+        {/* Member Color Legend */}
+        {members.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-1">
+            {members.map((m) => (
+              <div key={m.id} className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: m.theme_color || '#64B5F6' }} />
+                <span className="text-xs text-muted-foreground">{m.username || m.user_email?.split('@')[0]}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-            <AnimatePresence>
-              {/* Regular events */}
-              {selectedEvents.map((event) => {
-                const userColor = colorByEmail[event.creator_email] || '#64B5F6';
+        {/* Selected Date Section */}
+        <div ref={eventsRef}>
+          {selectedDate && (
+            <div className="space-y-3">
+              <h3 className="text-base font-bold">{format(selectedDate, 'EEEE, MMMM d')}</h3>
 
-                // Busy card
-                if (event.event_type === 'busy') {
+              <Button
+                onClick={() => setShowCreate(true)}
+                className="w-full rounded-2xl h-12 text-base font-bold shadow-md shadow-primary/20"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Create Event
+              </Button>
+
+              <AnimatePresence>
+                {selectedEvents.map((event) => {
+                  const userColor = colorByEmail[event.creator_email] || '#64B5F6';
+
+                  if (event.event_type === 'busy') {
+                    const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
+                    return (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: userColor }}>
+                          <span className="text-white font-bold text-xs">{creatorName[0]?.toUpperCase()}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-red-700">{creatorName} is busy</p>
+                          <p className="text-xs text-red-500">
+                            {event.busy_all_day ? 'All day' : `${event.busy_time_start || '?'} – ${event.busy_time_end || '?'}`}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  }
+
+                  const title = cleanTitle(event.title);
+                  const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
+                  return (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl border-2 p-4 space-y-2 relative overflow-hidden bg-card"
+                      style={{ borderColor: userColor }}
+                    >
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                        <defs>
+                          <pattern id={`hatch-card-${event.id}`} patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+                            <line x1="0" y1="0" x2="0" y2="10" stroke={userColor} strokeWidth="1.2" />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill={`url(#hatch-card-${event.id})`} opacity="0.08" />
+                      </svg>
+                      <div className="relative z-10 space-y-2">
+                        <h4 className="font-bold text-base">{title}</h4>
+                        {event.description && <p className="text-xs text-muted-foreground">{event.description}</p>}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          {event.event_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.event_time}</span>}
+                          {event.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>}
+                        </div>
+                        <p className="text-base font-bold" style={{ color: userColor }}>{creatorName}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {selectedRecurringBusy.map((event) => {
+                  const userColor = colorByEmail[event.creator_email] || '#64B5F6';
                   const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
                   return (
                     <motion.div
@@ -176,96 +237,43 @@ export default function CalendarPage() {
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 flex items-center gap-3"
                     >
-                      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-base" style={{ background: userColor }}>
+                      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: userColor }}>
                         <span className="text-white font-bold text-xs">{creatorName[0]?.toUpperCase()}</span>
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-red-700">{creatorName} is busy</p>
+                        <p className="font-bold text-sm text-red-700">{creatorName} is busy 🔄</p>
                         <p className="text-xs text-red-500">
-                          {event.busy_all_day ? 'All day' : `${event.busy_time_start || '?'} – ${event.busy_time_end || '?'}`}
+                          {event.busy_all_day ? 'All day (recurring)' : `${event.busy_time_start || '?'} – ${event.busy_time_end || '?'} (recurring)`}
                         </p>
                       </div>
                     </motion.div>
                   );
-                }
+                })}
 
-                // Regular event card
-                const title = cleanTitle(event.title);
-                const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
-                return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border-2 p-4 space-y-2 relative overflow-hidden bg-card"
-                    style={{ borderColor: userColor }}
-                  >
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                      <defs>
-                        <pattern id={`hatch-card-${event.id}`} patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
-                          <line x1="0" y1="0" x2="0" y2="10" stroke={userColor} strokeWidth="1.2" />
-                        </pattern>
-                      </defs>
-                      <rect width="100%" height="100%" fill={`url(#hatch-card-${event.id})`} opacity="0.08" />
-                    </svg>
-                    <div className="relative z-10 space-y-2">
-                      <h4 className="font-bold text-base">{title}</h4>
-                      {event.description && (
-                        <p className="text-xs text-muted-foreground">{event.description}</p>
-                      )}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {event.event_time && (
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.event_time}</span>
-                        )}
-                        {event.location && (
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>
-                        )}
-                      </div>
-                      <p className="text-base font-bold" style={{ color: userColor }}>{creatorName}</p>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                {selectedEvents.length === 0 && selectedRecurringBusy.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No events on this day.</p>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
-              {/* Recurring busy cards */}
-              {selectedRecurringBusy.map((event) => {
-                const userColor = colorByEmail[event.creator_email] || '#64B5F6';
-                const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
-                return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 flex items-center gap-3"
-                  >
-                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: userColor }}>
-                      <span className="text-white font-bold text-xs">{creatorName[0]?.toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-red-700">{creatorName} is busy 🔄</p>
-                      <p className="text-xs text-red-500">
-                        {event.busy_all_day ? 'All day (recurring)' : `${event.busy_time_start || '?'} – ${event.busy_time_end || '?'} (recurring)`}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
+        <CreateEventModal open={showCreate} onOpenChange={setShowCreate} selectedDate={selectedDate} />
 
-              {selectedEvents.length === 0 && selectedRecurringBusy.length === 0 && (
-                <p className="text-xs text-muted-foreground">No events on this day.</p>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+        <SetBusyButton onRequestDatePick={requestDatePick} />
       </div>
 
-      <CreateEventModal
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        selectedDate={selectedDate}
-      />
-
-      <SetBusyButton />
-    </div>
+      {/* Full-screen date pick overlay */}
+      <AnimatePresence>
+        {datePickRequest && (
+          <BusyDatePickOverlay
+            singleMode={datePickRequest.singleMode}
+            members={members}
+            onConfirm={handleOverlayConfirm}
+            onCancel={handleOverlayCancel}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

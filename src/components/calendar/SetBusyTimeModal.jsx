@@ -7,14 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import TimePicker from './TimePicker';
-import DateRangePicker from './DateRangePicker';
 
-export default function SetBusyTimeModal({ open, onOpenChange }) {
+export default function SetBusyTimeModal({ open, onOpenChange, onRequestDatePick }) {
   const { user, activeCircleId, myMembership } = useCircle();
   const queryClient = useQueryClient();
 
-  const [view, setView] = useState('main'); // 'main' | 'datepicker'
-  const [mode, setMode] = useState('single'); // 'single' | 'multi'
+  const [mode, setMode] = useState('single');
   const [singleDate, setSingleDate] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -26,9 +24,18 @@ export default function SetBusyTimeModal({ open, onOpenChange }) {
   const [loading, setLoading] = useState(false);
 
   const reset = () => {
-    setView('main');
     setMode('single'); setSingleDate(null); setStartDate(null); setEndDate(null);
     setAllDay(true); setTimeStart(''); setTimeEnd('');
+  };
+
+  const handleSelectDate = async () => {
+    onOpenChange(false);
+    const result = await onRequestDatePick({ singleMode: mode === 'single', for: 'busy' });
+    onOpenChange(true);
+    if (result) {
+      if (mode === 'single') setSingleDate(result.start);
+      else { setStartDate(result.start); setEndDate(result.end); }
+    }
   };
 
   const handleConfirm = async () => {
@@ -76,10 +83,9 @@ export default function SetBusyTimeModal({ open, onOpenChange }) {
 
   const canConfirm = mode === 'single' ? !!singleDate : (!!startDate && !!endDate);
 
-  // When date picker confirms for single mode
-  const handleSingleConfirm = (d) => { setSingleDate(d); setView('main'); };
-  // When date picker confirms for range mode
-  const handleRangeConfirm = (s, e) => { setStartDate(s); setEndDate(e); setView('main'); };
+  const dateLabel = mode === 'single'
+    ? (singleDate ? format(singleDate, 'EEEE, MMMM d') : 'Select date')
+    : (startDate && endDate ? `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d')}` : 'Select start & end date');
 
   return (
     <>
@@ -89,112 +95,76 @@ export default function SetBusyTimeModal({ open, onOpenChange }) {
             <DialogTitle className="font-extrabold">📅 Set Busy Time</DialogTitle>
           </DialogHeader>
 
-          {view === 'main' ? (
-            <div className="space-y-5">
-              {/* Single / Multi */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Duration</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setMode('single')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                      mode === 'single' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    Single day
-                  </button>
-                  <button
-                    onClick={() => setMode('multi')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                      mode === 'multi' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    Multiple days
-                  </button>
-                </div>
+          <div className="space-y-5">
+            {/* Single / Multi */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Duration</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMode('single')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${mode === 'single' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                >
+                  Single day
+                </button>
+                <button
+                  onClick={() => setMode('multi')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${mode === 'multi' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                >
+                  Multiple days
+                </button>
               </div>
+            </div>
 
-              {/* Date selection */}
-              {mode === 'single' ? (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Date</p>
-                  <button
-                    onClick={() => setView('datepicker')}
-                    className="w-full py-2.5 rounded-xl border border-input bg-muted text-sm font-medium text-center"
-                  >
-                    {singleDate ? format(singleDate, 'EEEE, MMMM d') : 'Select date'}
+            {/* Date button — opens overlay */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                {mode === 'single' ? 'Date' : 'Date range'}
+              </p>
+              <button
+                onClick={handleSelectDate}
+                className="w-full py-2.5 rounded-xl border border-input bg-muted text-sm font-medium text-center"
+              >
+                {dateLabel}
+              </button>
+            </div>
+
+            {/* All day / time */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Time</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAllDay(true)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${allDay ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                >
+                  All day
+                </button>
+                <button
+                  onClick={() => setAllDay(false)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${!allDay ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                >
+                  Select time
+                </button>
+              </div>
+              {!allDay && (
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setShowStartPicker(true)} className="flex-1 py-2 rounded-xl text-xs border border-input bg-muted text-center font-medium">
+                    {timeStart || 'From'}
                   </button>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Date range</p>
-                  <button
-                    onClick={() => setView('datepicker')}
-                    className="w-full py-2.5 rounded-xl border border-input bg-muted text-sm font-medium text-center"
-                  >
-                    {startDate && endDate
-                      ? `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d')}`
-                      : 'Select start & end date'}
+                  <button onClick={() => setShowEndPicker(true)} className="flex-1 py-2 rounded-xl text-xs border border-input bg-muted text-center font-medium">
+                    {timeEnd || 'To'}
                   </button>
                 </div>
               )}
-
-              {/* All day / time */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Time</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAllDay(true)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                      allDay ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    All day
-                  </button>
-                  <button
-                    onClick={() => setAllDay(false)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                      !allDay ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    Select time
-                  </button>
-                </div>
-                {!allDay && (
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => setShowStartPicker(true)}
-                      className="flex-1 py-2 rounded-xl text-xs border border-input bg-muted text-center font-medium"
-                    >
-                      {timeStart || 'From'}
-                    </button>
-                    <button
-                      onClick={() => setShowEndPicker(true)}
-                      className="flex-1 py-2 rounded-xl text-xs border border-input bg-muted text-center font-medium"
-                    >
-                      {timeEnd || 'To'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <Button
-                onClick={handleConfirm}
-                disabled={loading || !canConfirm}
-                className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white h-11"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
-              </Button>
             </div>
-          ) : (
-            /* Inline date picker — no second popup */
-            <DateRangePicker
-              singleMode={mode === 'single'}
-              label={mode === 'single' ? 'Pick a date' : 'Pick start & end dates'}
-              onConfirm={mode === 'single' ? handleSingleConfirm : handleRangeConfirm}
-              onCancel={() => setView('main')}
-            />
-          )}
+
+            <Button
+              onClick={handleConfirm}
+              disabled={loading || !canConfirm}
+              className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white h-11"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

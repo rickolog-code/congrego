@@ -4,32 +4,21 @@ import { CalendarPlus } from 'lucide-react';
 import RecurringBusyModal from './RecurringBusyModal';
 import SetBusyTimeModal from './SetBusyTimeModal';
 
-export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onClearPending }) {
+export default function SetBusyButton({ onRequestDatePick }) {
   const [showTooltip, setShowTooltip] = useState(true);
   const [showSubtabs, setShowSubtabs] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [showBusyTime, setShowBusyTime] = useState(false);
 
-  // Show tooltip on mount, fade after 2s
   useEffect(() => {
     setShowTooltip(true);
     const t = setTimeout(() => setShowTooltip(false), 2200);
     return () => clearTimeout(t);
   }, []);
 
-  // When a date pick result comes back, re-open the right modal
-  useEffect(() => {
-    if (pendingDatePick) {
-      if (pendingDatePick.for === 'recurring') setShowRecurring(true);
-      if (pendingDatePick.for === 'busy') setShowBusyTime(true);
-      onClearPending();
-    }
-  }, [pendingDatePick]);
-
   return (
     <>
       <div className="fixed bottom-24 right-4 z-30 flex flex-col items-end gap-2">
-        {/* Tooltip label */}
         <AnimatePresence>
           {showTooltip && !showSubtabs && (
             <motion.div
@@ -44,7 +33,6 @@ export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onCl
           )}
         </AnimatePresence>
 
-        {/* Subtab options */}
         <AnimatePresence>
           {showSubtabs && (
             <motion.div
@@ -57,14 +45,12 @@ export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onCl
               <button
                 onClick={() => { setShowSubtabs(false); setShowRecurring(true); }}
                 className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 🔄 Set recurring busy time
               </button>
               <button
                 onClick={() => { setShowSubtabs(false); setShowBusyTime(true); }}
                 className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 📅 Set a busy time
               </button>
@@ -72,7 +58,6 @@ export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onCl
           )}
         </AnimatePresence>
 
-        {/* FAB button */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowSubtabs((v) => !v)}
@@ -82,8 +67,16 @@ export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onCl
         </motion.button>
       </div>
 
-      <RecurringBusyModal open={showRecurring} onOpenChange={setShowRecurring} />
-      <SetBusyTimeModal open={showBusyTime} onOpenChange={setShowBusyTime} />
+      <RecurringBusyModal
+        open={showRecurring}
+        onOpenChange={setShowRecurring}
+        onRequestDatePick={onRequestDatePick}
+      />
+      <SetBusyTimeModal
+        open={showBusyTime}
+        onOpenChange={setShowBusyTime}
+        onRequestDatePick={onRequestDatePick}
+      />
     </>
   );
 }
