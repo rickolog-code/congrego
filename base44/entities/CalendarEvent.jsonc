@@ -87,12 +87,6 @@
     "creator_email"
   ],
   "rls": {
-    "create": {
-      "data.creator_email": "{{user.email}}",
-      "data.circle_id": {
-        "$in": "{{user.data.circle_ids}}"
-      }
-    },
     "read": {
       "data.circle_id": {
         "$in": "{{user.data.circle_ids}}"

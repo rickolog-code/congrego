@@ -19,6 +19,7 @@ import JoinCircleModal from '@/components/circles/JoinCircleModal';
 import PrivacyModeToggle from '@/components/settings/PrivacyModeToggle';
 import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
 import ColorPickerModal from '@/components/profile/ColorPickerModal';
+import CalendarSyncModal from '@/components/settings/CalendarSyncModal';
 
 export default function Settings() {
   const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles } = useCircle();
@@ -36,6 +37,7 @@ export default function Settings() {
   const [showCircleImagePicker, setShowCircleImagePicker] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState('Notification' in window && Notification.permission === 'granted');
   const [calendarSynced, setCalendarSynced] = useState(myMembership?.calendar_synced || false);
+  const [showCalendarSync, setShowCalendarSync] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(myMembership?.privacy_mode || false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -154,23 +156,17 @@ export default function Settings() {
     }
   };
 
-  const CALENDAR_CONNECTOR_ID = '6a134e97b8274a0809c582f7';
-
-  const handleSyncCalendar = async () => {
-    if (!myMembership) return;
-    const url = await base44.connectors.connectAppUser(CALENDAR_CONNECTOR_ID);
-    const popup = window.open(url, '_blank');
-    const timer = setInterval(async () => {
-      if (!popup || popup.closed) {
-        clearInterval(timer);
-        // After OAuth, run the sync (passes user JWT automatically)
-        await base44.functions.invoke('syncGoogleCalendars', {});
-        queryClient.invalidateQueries({ queryKey: ['circle-members'] });
-        queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
-        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        setCalendarSynced(true);
-      }
-    }, 500);
+  const handleSyncComplete = async (provider) => {
+    if (myMembership) {
+      await base44.entities.CircleMember.update(myMembership.id, {
+        calendar_synced: true,
+        calendar_provider: provider,
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+    queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+    setCalendarSynced(true);
   };
 
   const inviteExpired = activeCircle?.invite_expires_at
@@ -284,7 +280,7 @@ export default function Settings() {
             <p className="text-xs text-muted-foreground">Let others know when you're busy</p>
           </div>
           <button
-            onClick={handleSyncCalendar}
+            onClick={() => setShowCalendarSync(true)}
             className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
           >
             Enable Now
@@ -491,6 +487,13 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CalendarSyncModal
+        open={showCalendarSync}
+        onOpenChange={setShowCalendarSync}
+        userEmail={user?.email}
+        onSyncComplete={handleSyncComplete}
+      />
 
       <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
       <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />

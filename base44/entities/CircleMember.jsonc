@@ -51,6 +51,14 @@
       "default": false,
       "description": "Whether the user has synced their calendar"
     },
+    "calendar_provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "apple"
+      ],
+      "description": "Which calendar provider the user synced with"
+    },
     "theme_color": {
       "type": "string",
       "description": "User's chosen theme color (hex)",
