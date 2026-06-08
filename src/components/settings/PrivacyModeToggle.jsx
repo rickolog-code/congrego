@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, HelpCircle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
+
+const IncognitoIcon = ({ color = 'currentColor', size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+    {/* Hat brim */}
+    <ellipse cx="50" cy="42" rx="40" ry="9" />
+    {/* Hat top */}
+    <path d="M22 42 Q18 20 50 18 Q82 20 78 42" />
+    {/* Mask */}
+    <path d="M18 65 Q18 55 30 55 Q38 55 40 62 Q43 68 50 68 Q57 68 60 62 Q62 55 70 55 Q82 55 82 65 Q82 75 70 75 Q62 75 60 68 Q57 62 50 62 Q43 62 40 68 Q38 75 30 75 Q18 75 18 65 Z" />
+  </svg>
+);
 
 export default function PrivacyModeToggle({ enabled, onToggle }) {
   const [showHelp, setShowHelp] = useState(false);
@@ -13,7 +24,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
         style={enabled ? {
           background: 'linear-gradient(135deg, #0d1117 0%, #0f2419 50%, #0d1117 100%)',
           borderColor: 'rgba(29,158,117,0.5)',
-          boxShadow: '0 0 20px rgba(29,158,117,0.2), inset 0 0 30px rgba(29,158,117,0.05)',
+          boxShadow: '0 0 32px rgba(29,158,117,0.38), inset 0 0 30px rgba(29,158,117,0.08)',
         } : {
           background: 'hsl(var(--card))',
           borderColor: 'hsl(var(--border))',
@@ -29,7 +40,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
                 boxShadow: '0 0 12px rgba(29,158,117,0.5)',
               } : { background: 'hsl(var(--muted))' }}
             >
-              <ShieldCheck className="w-4 h-4" style={{ color: enabled ? '#fff' : 'hsl(var(--muted-foreground))' }} />
+              <IncognitoIcon color={enabled ? '#fff' : 'hsl(var(--muted-foreground))'} size={20} />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span
