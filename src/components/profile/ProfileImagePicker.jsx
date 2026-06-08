@@ -96,10 +96,10 @@ export default function ProfileImagePicker({ open, onOpenChange, onSelect, curre
     const reader = new FileReader();
     reader.onload = (ev) => {
       setCropSrc(ev.target.result);
+      onOpenChange(false); // close picker before opening crop
       setShowCrop(true);
     };
     reader.readAsDataURL(file);
-    // Reset input so same file can be re-selected
     e.target.value = '';
   };
 
