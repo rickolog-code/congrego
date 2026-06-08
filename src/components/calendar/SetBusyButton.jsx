@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useVelocity } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { CalendarPlus } from 'lucide-react';
 import RecurringBusyModal from './RecurringBusyModal';
 import SetBusyTimeModal from './SetBusyTimeModal';
+
+const BTN_SIZE = 56; // w-14 h-14 = 56px
 
 export default function SetBusyButton({ onRequestDatePick }) {
   const [showTooltip, setShowTooltip] = useState(true);
@@ -10,19 +12,32 @@ export default function SetBusyButton({ onRequestDatePick }) {
   const [showRecurring, setShowRecurring] = useState(false);
   const [showBusyTime, setShowBusyTime] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [constraints, setConstraints] = useState({ top: 0, left: 0, right: 0, bottom: 0 });
   const dragMoved = useRef(false);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  // Velocity for warp
-  const xVelocity = useVelocity(x);
-  const yVelocity = useVelocity(y);
-
-  // Elastic squish based on velocity
-  const scaleX = useTransform(xVelocity, [-1800, 0, 1800], [0.75, 1, 0.75]);
-  const scaleY = useTransform(xVelocity, [-1800, 0, 1800], [1.25, 1, 1.25]);
-  const rotate = useTransform(xVelocity, [-1800, 0, 1800], [-15, 0, 15]);
+  // Calculate drag constraints based on window size and button's default position
+  // Default position: bottom: 96, right: 16 → from top-left origin:
+  //   defaultLeft = window.innerWidth - 16 - BTN_SIZE
+  //   defaultTop  = window.innerHeight - 96 - BTN_SIZE
+  // Constraints are relative offsets from that default position
+  useEffect(() => {
+    const update = () => {
+      const defaultLeft = window.innerWidth - 16 - BTN_SIZE;
+      const defaultTop = window.innerHeight - 96 - BTN_SIZE;
+      setConstraints({
+        left: -defaultLeft,           // can't go past left edge
+        right: window.innerWidth - defaultLeft - BTN_SIZE,  // can't go past right edge
+        top: -defaultTop,             // can't go past top edge
+        bottom: window.innerHeight - defaultTop - BTN_SIZE, // can't go past bottom edge
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setShowTooltip(false), 2200);
@@ -41,7 +56,6 @@ export default function SetBusyButton({ onRequestDatePick }) {
   };
 
   const handleDragEnd = () => {
-    // Small delay so the click event sees dragMoved=true and ignores it
     setTimeout(() => {
       setIsDragging(false);
       dragMoved.current = false;
@@ -58,12 +72,13 @@ export default function SetBusyButton({ onRequestDatePick }) {
       <motion.div
         drag
         dragMomentum={true}
-        dragElastic={0.12}
+        dragElastic={0.08}
+        dragConstraints={constraints}
         dragTransition={{
-          power: 0.4,
-          timeConstant: 280,
-          bounceDamping: 18,
-          bounceStiffness: 200,
+          power: 0.3,
+          timeConstant: 250,
+          bounceDamping: 20,
+          bounceStiffness: 300,
         }}
         style={{ x, y, position: 'fixed', bottom: 96, right: 16, zIndex: 30 }}
         onDragStart={handleDragStart}
@@ -112,11 +127,10 @@ export default function SetBusyButton({ onRequestDatePick }) {
           )}
         </AnimatePresence>
 
-        {/* Main FAB — warp only, no size change */}
+        {/* Main FAB — no scale transforms, purely visual */}
         <motion.button
           onClick={handleClick}
-          style={{ scaleX, scaleY, rotate }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.92 }}
           className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30 select-none touch-none"
         >
           <CalendarPlus className="w-6 h-6" />
