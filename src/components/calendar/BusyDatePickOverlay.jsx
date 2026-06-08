@@ -128,8 +128,9 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
                   className={`relative h-11 text-sm font-medium flex items-center justify-center transition-colors
                     ${!isCurrentMonth ? 'text-muted-foreground/30 pointer-events-none' : ''}
                     ${(inRange || isSelected) && isCurrentMonth ? 'text-red-600 font-semibold' : ''}
-                    ${!inRange && !isSelected && isCurrentMonth ? (isToday ? 'text-primary font-bold' : 'text-foreground hover:bg-muted') : ''}
+                    ${!inRange && !isSelected && isCurrentMonth ? (isToday ? 'font-bold' : 'text-foreground hover:bg-muted') : ''}
                   `}
+                  style={isToday && !isSelected && !inRange ? { color: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.18)', borderRadius: '0.75rem' } : {}}
                 >
                   {format(day, 'd')}
                 </motion.button>
