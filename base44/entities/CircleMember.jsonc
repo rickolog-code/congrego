@@ -55,6 +55,11 @@
       "type": "string",
       "description": "User's chosen theme color (hex)",
       "default": "#64B5F6"
+    },
+    "privacy_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, hides this user's event titles from circle members \u2014 shown as '[name] is busy'"
     }
   },
   "required": [

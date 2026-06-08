@@ -43,8 +43,10 @@ export default function CalendarPage() {
   });
 
   const colorByEmail = {};
+  const privacyByEmail = {};
   members.forEach((m) => {
     if (m.user_email && m.theme_color) colorByEmail[m.user_email] = m.theme_color;
+    if (m.user_email) privacyByEmail[m.user_email] = !!m.privacy_mode;
   });
 
   const dotsByDate = {};
@@ -193,6 +195,7 @@ export default function CalendarPage() {
                   if (event.event_type === 'busy') {
                     const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
                     const isOwner = event.creator_email === user?.email;
+                    // busy events already show "[name] is busy" — no further masking needed
                     return (
                       <motion.div
                         key={event.id}
@@ -236,8 +239,11 @@ export default function CalendarPage() {
                     );
                   }
 
-                  const title = cleanTitle(event.title);
+                  const rawTitle = cleanTitle(event.title);
                   const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
+                  const isOwner = event.creator_email === user?.email;
+                  const isPrivate = privacyByEmail[event.creator_email] && !isOwner;
+                  const title = isPrivate ? `${creatorName} is busy` : rawTitle;
                   return (
                     <motion.div
                       key={event.id}
@@ -256,10 +262,10 @@ export default function CalendarPage() {
                       </svg>
                       <div className="relative z-10 space-y-2">
                         <h4 className="font-bold text-base">{title}</h4>
-                        {event.description && <p className="text-xs text-muted-foreground">{event.description}</p>}
+                        {!isPrivate && event.description && <p className="text-xs text-muted-foreground">{event.description}</p>}
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           {event.event_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.event_time}</span>}
-                          {event.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>}
+                          {!isPrivate && event.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>}
                         </div>
                         <p className="text-base font-bold" style={{ color: userColor }}>{creatorName}</p>
                       </div>

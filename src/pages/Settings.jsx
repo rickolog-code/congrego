@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
 import JoinCircleModal from '@/components/circles/JoinCircleModal';
+import PrivacyModeToggle from '@/components/settings/PrivacyModeToggle';
 import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
 import ColorPickerModal from '@/components/profile/ColorPickerModal';
 
@@ -36,6 +37,7 @@ export default function Settings() {
   const [notifEnabled, setNotifEnabled] = useState('Notification' in window && Notification.permission === 'granted');
   const [calendarSynced, setCalendarSynced] = useState(myMembership?.calendar_synced || false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState(myMembership?.privacy_mode || false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -289,6 +291,19 @@ export default function Settings() {
           </button>
         </div>
       )}
+
+      {/* Privacy Mode */}
+      <PrivacyModeToggle
+        enabled={privacyMode}
+        onToggle={async () => {
+          if (!myMembership) return;
+          const next = !privacyMode;
+          setPrivacyMode(next);
+          await base44.entities.CircleMember.update(myMembership.id, { privacy_mode: next });
+          queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+          queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+        }}
+      />
 
       {/* Circle Section */}
       {activeCircle && (
