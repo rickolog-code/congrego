@@ -179,7 +179,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
           {/* Circle crop area */}
           <div
             ref={containerRef}
-            className="relative overflow-hidden rounded-full border-4 border-primary shadow-lg cursor-grab active:cursor-grabbing select-none touch-none"
+            className="relative rounded-full border-4 border-primary shadow-lg cursor-grab active:cursor-grabbing select-none touch-none"
             style={{ width: SIZE, height: SIZE, flexShrink: 0 }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
