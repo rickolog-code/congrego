@@ -7,7 +7,7 @@ export default function HeaderMenu({ hasRedDot }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative" style={{ marginTop: '-48px' }}>
+    <div className="relative" style={{ marginTop: '-36px', marginRight: '8px' }}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="relative p-2 rounded-xl bg-card border border-border hover:bg-muted transition-colors"
