@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { MapPin, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
@@ -135,26 +136,37 @@ export default function CalendarPage() {
           )}
         </div>
 
-        <CalendarGrid
-          events={events}
-          dotsByDate={dotsByDate}
-          onDateSelect={handleDateSelect}
-          selectedDate={selectedDate}
-          busyByDate={busyByDate}
-          currentUser={user?.email}
-          colorByEmail={colorByEmail}
-        />
+        {datePickRequest ? (
+          <BusyDatePickOverlay
+            singleMode={datePickRequest.singleMode}
+            members={members}
+            onConfirm={handleOverlayConfirm}
+            onCancel={handleOverlayCancel}
+          />
+        ) : (
+          <>
+            <CalendarGrid
+              events={events}
+              dotsByDate={dotsByDate}
+              onDateSelect={handleDateSelect}
+              selectedDate={selectedDate}
+              busyByDate={busyByDate}
+              currentUser={user?.email}
+              colorByEmail={colorByEmail}
+            />
 
-        {/* Member Color Legend */}
-        {members.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-1">
-            {members.map((m) => (
-              <div key={m.id} className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: m.theme_color || '#64B5F6' }} />
-                <span className="text-xs text-muted-foreground">{m.username || m.user_email?.split('@')[0]}</span>
+            {/* Member Color Legend */}
+            {members.length > 0 && (
+              <div className="flex flex-wrap gap-2 px-1">
+                {members.map((m) => (
+                  <div key={m.id} className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: m.theme_color || '#64B5F6' }} />
+                    <span className="text-xs text-muted-foreground">{m.username || m.user_email?.split('@')[0]}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* Selected Date Section */}
@@ -263,17 +275,6 @@ export default function CalendarPage() {
         <SetBusyButton onRequestDatePick={requestDatePick} />
       </div>
 
-      {/* Full-screen date pick overlay */}
-      <AnimatePresence>
-        {datePickRequest && (
-          <BusyDatePickOverlay
-            singleMode={datePickRequest.singleMode}
-            members={members}
-            onConfirm={handleOverlayConfirm}
-            onCancel={handleOverlayCancel}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 }
