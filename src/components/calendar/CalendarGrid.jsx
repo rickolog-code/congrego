@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate }) {
+export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate, busyByDate = {}, currentUser }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -66,6 +66,9 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
           const isToday = isSameDay(day, new Date());
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const hasEvents = hasEvent(day);
+          const key = format(day, 'yyyy-MM-dd');
+          const busyEmails = busyByDate[key] || [];
+          const isMeBusy = currentUser && busyEmails.includes(currentUser);
 
           return (
             <motion.button
@@ -82,6 +85,13 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
                   : 'text-foreground hover:bg-muted'
               }`}
             >
+              {/* Red slash for days I'm busy */}
+              {isMeBusy && !isSelected && isCurrentMonth && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                  <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              )}
+
               {/* Hatch pattern for days with events */}
               {hasEvents && !isSelected && isCurrentMonth && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none">

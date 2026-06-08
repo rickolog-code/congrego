@@ -2,19 +2,20 @@ import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, eachDayOfInterval, parseISO, getDay, isWithinInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Clock, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import CreateEventModal from '@/components/calendar/CreateEventModal';
+import SetBusyButton from '@/components/calendar/SetBusyButton';
 
 function cleanTitle(title) {
   return title?.replace(/^\[gcal:[^\]]+\]\s*/, '') || '';
 }
 
 export default function CalendarPage() {
-  const { activeCircleId, activeCircle } = useCircle();
+  const { activeCircleId, activeCircle, user } = useCircle();
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const eventsRef = useRef(null);
@@ -38,10 +39,34 @@ export default function CalendarPage() {
 
   const dotsByDate = {};
   events.forEach((e) => {
+    if (e.event_type === 'busy' || e.event_type === 'recurring_busy') return;
     const key = e.event_date;
     if (!dotsByDate[key]) dotsByDate[key] = new Set();
     const color = colorByEmail[e.creator_email] || '#64B5F6';
     dotsByDate[key].add(color);
+  });
+
+  // Build busyByDate: date string -> array of user emails
+  const busyByDate = {};
+  const addBusy = (dateStr, email) => {
+    if (!busyByDate[dateStr]) busyByDate[dateStr] = [];
+    if (!busyByDate[dateStr].includes(email)) busyByDate[dateStr].push(email);
+  };
+
+  events.forEach((e) => {
+    if (e.event_type === 'busy' && e.event_date) {
+      addBusy(e.event_date, e.creator_email);
+    } else if (e.event_type === 'recurring_busy' && e.busy_days_of_week?.length) {
+      // Generate dates for the next 3 months
+      const rangeStart = e.busy_start_date ? parseISO(e.busy_start_date) : new Date();
+      const rangeEnd = e.busy_end_date ? parseISO(e.busy_end_date) : new Date(new Date().getFullYear(), new Date().getMonth() + 4, 0);
+      const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+      days.forEach((day) => {
+        if (e.busy_days_of_week.includes(getDay(day))) {
+          addBusy(format(day, 'yyyy-MM-dd'), e.creator_email);
+        }
+      });
+    }
   });
 
   const selectedEvents = selectedDate
@@ -80,6 +105,8 @@ export default function CalendarPage() {
         dotsByDate={dotsByDate}
         onDateSelect={handleDateSelect}
         selectedDate={selectedDate}
+        busyByDate={busyByDate}
+        currentUser={user?.email}
       />
 
       {/* Member Color Legend */}
@@ -175,6 +202,8 @@ export default function CalendarPage() {
         onOpenChange={setShowCreate}
         selectedDate={selectedDate}
       />
+
+      <SetBusyButton />
     </div>
   );
 }
