@@ -1,21 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle } from 'lucide-react';
-
-const IncognitoIcon = ({ size = 20, enabled = false }) => (
-  <img
-    src="https://media.base44.com/images/public/69ff930a3528037ceadeeade/4f535784e_image.png"
-    width={size}
-    height={size}
-    style={{
-      filter: enabled
-        ? 'invert(1) brightness(2)'
-        : 'brightness(0.5)',
-      objectFit: 'contain',
-    }}
-    alt="incognito"
-  />
-);
+import { ShieldCheck, HelpCircle } from 'lucide-react';
 
 export default function PrivacyModeToggle({ enabled, onToggle }) {
   const [showHelp, setShowHelp] = useState(false);
@@ -28,7 +13,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
         style={enabled ? {
           background: 'linear-gradient(135deg, #0d1117 0%, #0f2419 50%, #0d1117 100%)',
           borderColor: 'rgba(29,158,117,0.5)',
-          boxShadow: '0 0 32px rgba(29,158,117,0.38), inset 0 0 30px rgba(29,158,117,0.08)',
+          boxShadow: '0 0 20px rgba(29,158,117,0.2), inset 0 0 30px rgba(29,158,117,0.05)',
         } : {
           background: 'hsl(var(--card))',
           borderColor: 'hsl(var(--border))',
@@ -44,7 +29,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
                 boxShadow: '0 0 12px rgba(29,158,117,0.5)',
               } : { background: 'hsl(var(--muted))' }}
             >
-              <IncognitoIcon size={22} enabled={enabled} />
+              <ShieldCheck className="w-4 h-4" style={{ color: enabled ? '#fff' : 'hsl(var(--muted-foreground))' }} />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span
