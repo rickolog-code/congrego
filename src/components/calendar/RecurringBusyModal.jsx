@@ -114,14 +114,14 @@ export default function RecurringBusyModal({ open, onOpenChange, onRequestDatePi
                   <button
                     key={idx}
                     onClick={() => toggleDay(idx)}
-                    className={`flex-1 py-8 rounded-xl text-xs font-bold transition-all text-white ${
+                    className={`flex-1 py-8 rounded-xl text-xs font-bold transition-all ${
                       selectedDays.includes(idx)
-                        ? ''
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        ? 'text-white'
+                        : 'bg-muted/60 text-muted-foreground hover:bg-muted'
                     }`}
                     style={selectedDays.includes(idx) ? {
                       background: 'radial-gradient(ellipse at 50% 30%, #ff6b8a 0%, #e51a3e 45%, #8b0000 100%)',
-                      boxShadow: '0 0 12px 4px rgba(229,26,62,0.6), 0 0 24px 8px rgba(229,26,62,0.3)',
+                      boxShadow: '0 0 8px 2px rgba(229,26,62,0.35)',
                     } : {}}
                   >
                     {label}
