@@ -153,21 +153,37 @@ export default function BusyDatePickOverlay({ singleMode, members = [], onConfir
                   </feMerge>
                 </filter>
               </defs>
-              {pills.map((p, i) => (
-                <rect
-                  key={i}
-                  x={p.x + 2}
-                  y={p.y}
-                  width={p.w - 4}
-                  height={p.h}
-                  rx={p.r}
-                  ry={p.r}
-                  fill="rgba(239,68,68,0.07)"
-                  stroke="#ef4444"
-                  strokeWidth="2"
-                  filter="url(#red-glow)"
-                />
-              ))}
+              {pills.map((p, i) => {
+                  const midY = p.y + p.h / 2;
+                  return (
+                    <g key={i}>
+                      {/* Pill outline */}
+                      <rect
+                        x={p.x + 2}
+                        y={p.y}
+                        width={p.w - 4}
+                        height={p.h}
+                        rx={p.r}
+                        ry={p.r}
+                        fill="rgba(239,68,68,0.07)"
+                        stroke="#ef4444"
+                        strokeWidth="2"
+                        filter="url(#red-glow)"
+                      />
+                      {/* Glowing horizontal slash through the middle */}
+                      <line
+                        x1={p.x + 2}
+                        y1={midY}
+                        x2={p.x + p.w - 2}
+                        y2={midY}
+                        stroke="#ef4444"
+                        strokeWidth="1.5"
+                        filter="url(#red-glow)"
+                        opacity="0.7"
+                      />
+                    </g>
+                  );
+                })}
             </svg>
           )}
         </div>
