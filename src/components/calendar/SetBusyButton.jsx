@@ -22,12 +22,12 @@ export default function SetBusyButton({ onRequestDatePick }) {
   const xVel = useVelocity(x);
   const yVel = useVelocity(y);
 
-  // Subtle warp: stretch in direction of motion, squish perpendicular
-  const scaleX = useTransform(xVel, [-1200, 0, 1200], [0.82, 1, 0.82]);
-  const scaleY = useTransform(xVel, [-1200, 0, 1200], [1.18, 1, 1.18]);
-  const scaleYv = useTransform(yVel, [-1200, 0, 1200], [0.82, 1, 0.82]);
-  const scaleXv = useTransform(yVel, [-1200, 0, 1200], [1.18, 1, 1.18]);
-  const rotate = useTransform(xVel, [-1200, 0, 1200], [-10, 0, 10]);
+  // Warp: stretch in direction of motion, squish perpendicular
+  const scaleX = useTransform(xVel, [-1500, 0, 1500], [0.65, 1, 0.65]);
+  const scaleY = useTransform(xVel, [-1500, 0, 1500], [1.4, 1, 1.4]);
+  const scaleYv = useTransform(yVel, [-1500, 0, 1500], [0.65, 1, 0.65]);
+  const scaleXv = useTransform(yVel, [-1500, 0, 1500], [1.4, 1, 1.4]);
+  const rotate = useTransform(xVel, [-1500, 0, 1500], [-22, 0, 22]);
 
   // Calculate drag constraints based on window size and button's default position
   // Default position: bottom: 96, right: 16 → from top-left origin:
