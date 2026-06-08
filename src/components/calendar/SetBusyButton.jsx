@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useVelocity, useTransform } from 'framer-motion';
 import { CalendarPlus } from 'lucide-react';
 import RecurringBusyModal from './RecurringBusyModal';
 import SetBusyTimeModal from './SetBusyTimeModal';
@@ -18,6 +18,16 @@ export default function SetBusyButton({ onRequestDatePick }) {
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+
+  const xVel = useVelocity(x);
+  const yVel = useVelocity(y);
+
+  // Subtle warp: stretch in direction of motion, squish perpendicular
+  const scaleX = useTransform(xVel, [-1200, 0, 1200], [0.82, 1, 0.82]);
+  const scaleY = useTransform(xVel, [-1200, 0, 1200], [1.18, 1, 1.18]);
+  const scaleYv = useTransform(yVel, [-1200, 0, 1200], [0.82, 1, 0.82]);
+  const scaleXv = useTransform(yVel, [-1200, 0, 1200], [1.18, 1, 1.18]);
+  const rotate = useTransform(xVel, [-1200, 0, 1200], [-10, 0, 10]);
 
   // Calculate drag constraints based on window size and button's default position
   // Default position: bottom: 96, right: 16 → from top-left origin:
@@ -133,6 +143,11 @@ export default function SetBusyButton({ onRequestDatePick }) {
         <motion.button
           onClick={handleClick}
           whileTap={{ scale: 0.92 }}
+          style={{
+            scaleX: useTransform([scaleX, scaleXv], ([a, b]) => Math.min(a, b)),
+            scaleY: useTransform([scaleY, scaleYv], ([a, b]) => Math.min(a, b)),
+            rotate,
+          }}
           className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30 select-none touch-none"
         >
           <CalendarPlus className="w-6 h-6" />
