@@ -5,6 +5,7 @@ import RecurringBusyModal from './RecurringBusyModal';
 import SetBusyTimeModal from './SetBusyTimeModal';
 
 const BTN_SIZE = 56; // w-14 h-14 = 56px
+const NAV_HEIGHT = 72; // bottom nav bar height + a little breathing room
 
 export default function SetBusyButton({ onRequestDatePick }) {
   const [showTooltip, setShowTooltip] = useState(true);
@@ -28,10 +29,11 @@ export default function SetBusyButton({ onRequestDatePick }) {
       const defaultLeft = window.innerWidth - 16 - BTN_SIZE;
       const defaultTop = window.innerHeight - 96 - BTN_SIZE;
       setConstraints({
-        left: -defaultLeft,           // can't go past left edge
-        right: window.innerWidth - defaultLeft - BTN_SIZE,  // can't go past right edge
-        top: -defaultTop,             // can't go past top edge
-        bottom: window.innerHeight - defaultTop - BTN_SIZE, // can't go past bottom edge
+        left: -defaultLeft,
+        right: window.innerWidth - defaultLeft - BTN_SIZE,
+        top: -defaultTop,
+        // Stop before the nav bar
+        bottom: window.innerHeight - defaultTop - BTN_SIZE - NAV_HEIGHT,
       });
     };
     update();
