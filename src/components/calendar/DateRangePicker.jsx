@@ -1,11 +1,25 @@
 import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, isAfter, isBefore } from 'date-fns';
+import {
+  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  addDays, isSameMonth, isSameDay, addMonths, subMonths,
+  isWithinInterval, isBefore, getDay
+} from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-export default function DateRangePicker({ open, onOpenChange, onConfirm, singleMode = false }) {
+/**
+ * Inline calendar for picking a single date or a date range.
+ * Shows a golden glow around the calendar border.
+ * Renders inside the parent modal — no extra Dialog wrapper.
+ *
+ * Props:
+ *   singleMode   – pick one date (calls onConfirm(date))
+ *   onConfirm    – (start, end?) => void
+ *   onCancel     – () => void
+ *   label        – optional string shown above calendar
+ */
+export default function DateRangePicker({ onConfirm, onCancel, singleMode = false, label }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -42,7 +56,6 @@ export default function DateRangePicker({ open, onOpenChange, onConfirm, singleM
     if (!startDate || !endDate) return false;
     return isWithinInterval(day, { start: startDate, end: endDate });
   };
-
   const isStart = (day) => startDate && isSameDay(day, startDate);
   const isEnd = (day) => endDate && isSameDay(day, endDate);
 
@@ -52,86 +65,131 @@ export default function DateRangePicker({ open, onOpenChange, onConfirm, singleM
     } else if (startDate && endDate) {
       onConfirm(startDate, endDate);
     }
-    setStartDate(null);
-    setEndDate(null);
-    onOpenChange(false);
   };
 
   const canConfirm = singleMode ? !!startDate : (!!startDate && !!endDate);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { setStartDate(null); setEndDate(null); } onOpenChange(v); }}>
-      <DialogContent className="rounded-3xl max-w-sm mx-auto">
-        <DialogHeader>
-          <DialogTitle className="font-extrabold">
-            {singleMode ? 'Select Date' : 'Select Date Range'}
-          </DialogTitle>
-        </DialogHeader>
+    <div className="space-y-3">
+      {label && <p className="text-xs font-semibold text-muted-foreground">{label}</p>}
 
-        {/* Golden glow border indicator */}
-        <div className="rounded-2xl border-2 border-amber-400 shadow-[0_0_16px_4px_rgba(251,191,36,0.3)] p-3">
-          {/* Month nav */}
-          <div className="flex items-center justify-between mb-3">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-muted">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <h3 className="text-sm font-bold">{format(currentMonth, 'MMMM yyyy')}</h3>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-muted">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Day labels */}
-          <div className="grid grid-cols-7 mb-1">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((l) => (
-              <div key={l} className="text-center text-[10px] font-semibold text-muted-foreground py-1">{l}</div>
-            ))}
-          </div>
-
-          {/* Days */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {days.map((day, idx) => {
-              const inRange = isInRange(day);
-              const isS = isStart(day);
-              const isE = isEnd(day);
-              const isCurrentMonth = isSameMonth(day, currentMonth);
-              const isToday = isSameDay(day, new Date());
-
-              return (
-                <motion.button
-                  key={idx}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => isCurrentMonth && handleDayClick(day)}
-                  className={`relative h-10 rounded-xl text-xs font-medium flex flex-col items-center justify-center transition-all overflow-hidden
-                    ${!isCurrentMonth ? 'text-muted-foreground/30 pointer-events-none' : ''}
-                    ${isS || isE ? 'bg-red-500 text-white' : ''}
-                    ${inRange && !isS && !isE ? 'bg-red-100 text-red-700' : ''}
-                    ${!inRange && !isS && !isE && isCurrentMonth ? (isToday ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted text-foreground') : ''}
-                  `}
-                >
-                  {/* Red slash for range days */}
-                  {inRange && !isS && !isE && (
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" preserveAspectRatio="none">
-                      <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#ef4444" strokeWidth="2" />
-                    </svg>
-                  )}
-                  {format(day, 'd')}
-                </motion.button>
-              );
-            })}
-          </div>
+      {/* Golden-glowing calendar border */}
+      <div
+        className="rounded-2xl p-3"
+        style={{
+          border: '2px solid #f59e0b',
+          boxShadow: '0 0 18px 4px rgba(245,158,11,0.35)',
+        }}
+      >
+        {/* Month nav */}
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-muted">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <h3 className="text-sm font-bold">{format(currentMonth, 'MMMM yyyy')}</h3>
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-muted">
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
-        {!singleMode && (
-          <p className="text-xs text-center text-muted-foreground">
-            {!startDate ? 'Tap a start date' : !endDate ? 'Tap an end date' : `${format(startDate, 'MMM d')} → ${format(endDate, 'MMM d')}`}
-          </p>
-        )}
+        {/* Day labels */}
+        <div className="grid grid-cols-7 mb-1">
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((l) => (
+            <div key={l} className="text-center text-[10px] font-semibold text-muted-foreground py-1">{l}</div>
+          ))}
+        </div>
 
-        <Button onClick={handleConfirm} disabled={!canConfirm} className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white">
-          Confirm dates
+        {/* Days grid — no gap so range shapes connect */}
+        <div className="grid grid-cols-7">
+          {days.map((day, idx) => {
+            const inRange = isInRange(day);
+            const isS = isStart(day);
+            const isE = isEnd(day);
+            const isSingle = isS && isE;
+            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isToday = isSameDay(day, new Date());
+
+            // Figure out which day of week (0=Sun,6=Sat) for edge rounding
+            const dow = getDay(day);
+            const isFirstOfRow = dow === 0;
+            const isLastOfRow = dow === 6;
+
+            // Border-radius: round outer edges of start/end, square inner edges
+            let borderRadius = '0.75rem'; // default rounded for non-range days
+            if (isS && !isSingle) borderRadius = '0.75rem 0 0 0.75rem';
+            if (isE && !isSingle) borderRadius = '0 0.75rem 0.75rem 0';
+            if (isSingle) borderRadius = '0.75rem';
+            if (inRange && !isS && !isE) {
+              borderRadius = isFirstOfRow ? '0.75rem 0 0 0.75rem' : isLastOfRow ? '0 0.75rem 0.75rem 0' : '0';
+            }
+
+            return (
+              <motion.button
+                key={idx}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => isCurrentMonth && handleDayClick(day)}
+                style={{ borderRadius }}
+                className={`relative h-10 text-xs font-medium flex flex-col items-center justify-center transition-all overflow-hidden
+                  ${!isCurrentMonth ? 'text-muted-foreground/30 pointer-events-none' : ''}
+                  ${inRange ? 'bg-red-50' : ''}
+                  ${!inRange && !isS && !isE && isCurrentMonth ? (isToday ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted text-foreground') : ''}
+                `}
+              >
+                {/* Red through-line for ALL range days including start/end */}
+                {(isS || isE || inRange) && isCurrentMonth && (
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                    {/* Extend line to edges for range continuity */}
+                    <line
+                      x1={isS && !isSingle ? '50%' : '0'}
+                      y1="50%"
+                      x2={isE && !isSingle ? '50%' : '100%'}
+                      y2="50%"
+                      stroke="#ef4444"
+                      strokeWidth="2.5"
+                    />
+                  </svg>
+                )}
+
+                {/* Glowing red circle outline for start and end */}
+                {(isS || isE) && isCurrentMonth && (
+                  <div
+                    className="absolute inset-0.5 rounded-xl pointer-events-none"
+                    style={{
+                      border: '2px solid #ef4444',
+                      boxShadow: '0 0 8px 2px rgba(239,68,68,0.5)',
+                    }}
+                  />
+                )}
+
+                <span className={`relative z-10 ${(isS || isE) && !inRange ? 'font-bold text-red-600' : inRange && !isS && !isE ? 'text-red-500' : ''}`}>
+                  {format(day, 'd')}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {!singleMode && (
+        <p className="text-xs text-center text-muted-foreground">
+          {!startDate ? 'Tap a start date' : !endDate ? 'Tap an end date' : `${format(startDate, 'MMM d')} → ${format(endDate, 'MMM d')}`}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel} className="flex-1 rounded-xl">
+            Back
+          </Button>
+        )}
+        <Button
+          onClick={handleConfirm}
+          disabled={!canConfirm}
+          className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+        >
+          Confirm
         </Button>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

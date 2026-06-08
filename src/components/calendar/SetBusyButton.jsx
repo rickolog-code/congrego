@@ -4,7 +4,7 @@ import { CalendarPlus } from 'lucide-react';
 import RecurringBusyModal from './RecurringBusyModal';
 import SetBusyTimeModal from './SetBusyTimeModal';
 
-export default function SetBusyButton() {
+export default function SetBusyButton({ onRequestDatePick, pendingDatePick, onClearPending }) {
   const [showTooltip, setShowTooltip] = useState(true);
   const [showSubtabs, setShowSubtabs] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
@@ -17,9 +17,14 @@ export default function SetBusyButton() {
     return () => clearTimeout(t);
   }, []);
 
-  const handleButtonClick = () => {
-    setShowSubtabs((v) => !v);
-  };
+  // When a date pick result comes back, re-open the right modal
+  useEffect(() => {
+    if (pendingDatePick) {
+      if (pendingDatePick.for === 'recurring') setShowRecurring(true);
+      if (pendingDatePick.for === 'busy') setShowBusyTime(true);
+      onClearPending();
+    }
+  }, [pendingDatePick]);
 
   return (
     <>
@@ -51,13 +56,15 @@ export default function SetBusyButton() {
             >
               <button
                 onClick={() => { setShowSubtabs(false); setShowRecurring(true); }}
-                className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-lg whitespace-nowrap hover:bg-primary/10 transition-colors"
+                className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 🔄 Set recurring busy time
               </button>
               <button
                 onClick={() => { setShowSubtabs(false); setShowBusyTime(true); }}
-                className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-lg whitespace-nowrap hover:bg-primary/10 transition-colors"
+                className="bg-card border-2 border-primary text-primary text-xs font-bold px-4 py-2 rounded-2xl shadow-xl whitespace-nowrap"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 📅 Set a busy time
               </button>
@@ -68,7 +75,7 @@ export default function SetBusyButton() {
         {/* FAB button */}
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={handleButtonClick}
+          onClick={() => setShowSubtabs((v) => !v)}
           className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30"
         >
           <CalendarPlus className="w-6 h-6" />

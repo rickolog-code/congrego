@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate, busyByDate = {}, currentUser }) {
+export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelect, selectedDate, busyByDate = {}, currentUser, colorByEmail = {} }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -85,13 +85,6 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
                   : 'text-foreground hover:bg-muted'
               }`}
             >
-              {/* Red slash for days I'm busy */}
-              {isMeBusy && !isSelected && isCurrentMonth && (
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                  <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-              )}
-
               {/* Hatch pattern for days with events */}
               {hasEvents && !isSelected && isCurrentMonth && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none">
@@ -106,18 +99,22 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
 
               {format(day, 'd')}
 
-              {/* Colored dots per user */}
-              {dots.length > 0 && (
-                <div className="flex gap-0.5 mt-0.5">
-                  {dots.slice(0, 3).map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: isSelected ? 'white' : color }}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Colored dots per user — events + busy users */}
+              {(() => {
+                const busyColors = busyEmails.map(email => colorByEmail?.[email] || '#ef4444');
+                const allDots = [...new Set([...dots, ...busyColors])];
+                return allDots.length > 0 ? (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {allDots.slice(0, 3).map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ background: isSelected ? 'white' : color }}
+                      />
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </motion.button>
           );
         })}
