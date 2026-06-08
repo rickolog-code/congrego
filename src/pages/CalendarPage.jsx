@@ -171,7 +171,7 @@ export default function CalendarPage() {
 
         {/* Selected Date Section */}
         <div ref={eventsRef}>
-          {selectedDate && (
+          {selectedDate && !datePickRequest && (
             <div className="space-y-3">
               <h3 className="text-base font-bold">{format(selectedDate, 'EEEE, MMMM d')}</h3>
 
