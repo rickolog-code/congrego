@@ -24,18 +24,18 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Decorative images — always mounted so they never flash on tab switch */}
+      {/* Decorative images — always mounted so they never flash, but only visible on home tab */}
       <div
-        className="fixed top-0 right-0 z-10 pointer-events-none select-none"
-        style={{ width: '90vw', maxWidth: 500 }}
+        className="fixed top-0 right-0 z-10 pointer-events-none select-none transition-opacity duration-300"
+        style={{ width: '90vw', maxWidth: 500, opacity: tabIndex === 0 ? 1 : 0 }}
       >
         <img src={MONKEY_IMG} alt="" className="w-full" />
       </div>
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none fixed left-0 z-0"
-        style={{ width: '100vw', bottom: '19px' }}
+        className="pointer-events-none fixed left-0 z-0 transition-opacity duration-300"
+        style={{ width: '100vw', bottom: '19px', opacity: tabIndex === 0 ? 1 : 0 }}
       />
 
       <div className={`relative z-10 max-w-lg mx-auto min-h-screen ${hasCircle ? 'pb-20' : ''}`}>
