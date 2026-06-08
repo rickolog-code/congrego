@@ -96,26 +96,8 @@ export default function Home() {
     );
   }
 
-  const MONKEY_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/d6873467d_Monkey.png";
-  const TREE_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/2eed85bff_Tree.png";
-
   return (
     <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — fixed top right, decorative only */}
-      <div
-        className="fixed top-0 right-0 z-10 pointer-events-none select-none"
-        style={{ width: '90vw', maxWidth: 500 }}
-      >
-        <img src={MONKEY_IMG} alt="" className="w-full" />
-      </div>
-
-      {/* Tree — fixed bottom left, sitting on top of nav */}
-      <img
-        src={TREE_IMG}
-        alt=""
-        className="pointer-events-none fixed left-0 z-0"
-        style={{ width: '100vw', bottom: '19px' }}
-      />
 
       {/* Header */}
       <div className="flex items-center justify-between relative z-20">
