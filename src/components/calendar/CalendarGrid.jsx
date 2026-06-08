@@ -81,7 +81,7 @@ export default function CalendarGrid({ events = [], dotsByDate = {}, onDateSelec
                   : isSelected
                   ? 'bg-primary text-primary-foreground'
                   : isToday
-                  ? 'bg-primary/10 text-primary font-bold'
+                  ? 'bg-primary/20 text-primary font-bold'
                   : 'text-foreground hover:bg-muted'
               }`}
             >
