@@ -361,7 +361,7 @@ export default function Settings() {
                   )}
                 </div>
               )}
-
+              <p className="text-xs text-muted-foreground">{activeCircle.member_count || 0} members</p>
             </div>
           </div>
 

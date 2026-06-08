@@ -31,8 +31,12 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     }
   }, [imageSrc, open]);
 
-  const clamp = useCallback((x, y) => {
-    return { x, y };
+  const clamp = useCallback((x, y, s) => {
+    const maxOff = Math.max(0, (SIZE * s - SIZE) / 2);
+    return {
+      x: Math.max(-maxOff, Math.min(maxOff, x)),
+      y: Math.max(-maxOff, Math.min(maxOff, y)),
+    };
   }, []);
 
   // ── Pointer (mouse + single-finger touch) drag ──
