@@ -1,16 +1,18 @@
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { MapPin, Clock, Plus } from 'lucide-react';
+import { MapPin, Clock, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import CreateEventModal from '@/components/calendar/CreateEventModal';
 import SetBusyButton from '@/components/calendar/SetBusyButton';
 import BusyDatePickOverlay from '@/components/calendar/BusyDatePickOverlay';
+import EditBusyEventModal from '@/components/calendar/EditBusyEventModal';
 
 function cleanTitle(title) {
   return title?.replace(/^\[gcal:[^\]]+\]\s*/, '') || '';
@@ -18,8 +20,10 @@ function cleanTitle(title) {
 
 export default function CalendarPage() {
   const { activeCircleId, activeCircle, user } = useCircle();
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingBusyEvent, setEditingBusyEvent] = useState(null);
   const eventsRef = useRef(null);
 
   // Date-pick overlay state
@@ -188,22 +192,46 @@ export default function CalendarPage() {
 
                   if (event.event_type === 'busy') {
                     const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
+                    const isOwner = event.creator_email === user?.email;
                     return (
                       <motion.div
                         key={event.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 flex items-center gap-3"
+                        className="rounded-2xl border-2 border-red-400 bg-red-50 p-4 flex items-center gap-3 relative"
                       >
                         <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: userColor }}>
                           <span className="text-white font-bold text-xs">{creatorName[0]?.toUpperCase()}</span>
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-bold text-sm text-red-700">{creatorName} is busy</p>
                           <p className="text-xs text-red-500">
                             {event.busy_all_day ? 'All day' : `${event.busy_time_start || '?'} – ${event.busy_time_end || '?'}`}
                           </p>
                         </div>
+                        {isOwner && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1 rounded-full hover:bg-red-100 flex-shrink-0">
+                                <MoreVertical className="w-4 h-4 text-red-400" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditingBusyEvent(event)}>
+                                <Pencil className="w-4 h-4 mr-2" /> Edit time
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={async () => {
+                                  await base44.entities.CalendarEvent.delete(event.id);
+                                  queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </motion.div>
                     );
                   }
@@ -275,6 +303,11 @@ export default function CalendarPage() {
         <SetBusyButton onRequestDatePick={requestDatePick} />
       </div>
 
+      <EditBusyEventModal
+        event={editingBusyEvent}
+        open={!!editingBusyEvent}
+        onOpenChange={(v) => { if (!v) setEditingBusyEvent(null); }}
+      />
     </>
   );
 }
