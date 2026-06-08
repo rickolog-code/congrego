@@ -141,7 +141,7 @@ export default function CalendarPage() {
 
   return (
     <>
-      <div className="px-4 pt-6 space-y-5 pb-8">
+      <div className="px-4 pt-6 space-y-5 pb-4">
         <div>
           <h1 className="text-2xl font-extrabold">Calendar</h1>
           {activeCircle && (

@@ -100,7 +100,7 @@ export default function Home() {
   const TREE_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/2eed85bff_Tree.png";
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       {/* Monkey + vine — absolute, scoped to Home tab only */}
       <div
         className="absolute top-0 right-0 z-10 pointer-events-none select-none"
