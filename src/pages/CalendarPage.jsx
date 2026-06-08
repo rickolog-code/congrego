@@ -5,7 +5,7 @@ import { useCircle } from '@/lib/useCircleContext.jsx';
 import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { MapPin, Clock, Plus, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
@@ -213,7 +213,7 @@ export default function CalendarPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="p-1 rounded-full hover:bg-red-100 flex-shrink-0">
-                                <MoreVertical className="w-4 h-4 text-red-400" />
+                                <MoreHorizontal className="w-4 h-4 text-white" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
