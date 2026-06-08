@@ -2,15 +2,19 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 
-const IncognitoIcon = ({ color = 'currentColor', size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-    {/* Hat brim */}
-    <ellipse cx="50" cy="42" rx="40" ry="9" />
-    {/* Hat top */}
-    <path d="M22 42 Q18 20 50 18 Q82 20 78 42" />
-    {/* Mask */}
-    <path d="M18 65 Q18 55 30 55 Q38 55 40 62 Q43 68 50 68 Q57 68 60 62 Q62 55 70 55 Q82 55 82 65 Q82 75 70 75 Q62 75 60 68 Q57 62 50 62 Q43 62 40 68 Q38 75 30 75 Q18 75 18 65 Z" />
-  </svg>
+const IncognitoIcon = ({ size = 20, enabled = false }) => (
+  <img
+    src="https://media.base44.com/images/public/69ff930a3528037ceadeeade/4f535784e_image.png"
+    width={size}
+    height={size}
+    style={{
+      filter: enabled
+        ? 'invert(1) brightness(2)'
+        : 'brightness(0.5)',
+      objectFit: 'contain',
+    }}
+    alt="incognito"
+  />
 );
 
 export default function PrivacyModeToggle({ enabled, onToggle }) {
@@ -40,7 +44,7 @@ export default function PrivacyModeToggle({ enabled, onToggle }) {
                 boxShadow: '0 0 12px rgba(29,158,117,0.5)',
               } : { background: 'hsl(var(--muted))' }}
             >
-              <IncognitoIcon color={enabled ? '#fff' : 'hsl(var(--muted-foreground))'} size={20} />
+              <IncognitoIcon size={22} enabled={enabled} />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span
