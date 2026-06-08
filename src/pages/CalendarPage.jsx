@@ -212,8 +212,8 @@ export default function CalendarPage() {
                         {isOwner && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-1 rounded-full hover:bg-red-100 flex-shrink-0">
-                                <MoreHorizontal className="w-4 h-4 text-white" />
+                              <button className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-100">
+                                <MoreHorizontal className="w-4 h-4 text-red-400" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
