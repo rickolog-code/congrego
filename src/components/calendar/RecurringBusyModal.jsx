@@ -61,7 +61,6 @@ export default function RecurringBusyModal({ open, onOpenChange, onRequestDatePi
   };
 
   const handleConfirm = async () => {
-    if (selectedDays.length === 0) return;
     setLoading(true);
     const authorName = myMembership?.username || user.full_name || user.email.split('@')[0];
     const payload = {
@@ -190,7 +189,7 @@ export default function RecurringBusyModal({ open, onOpenChange, onRequestDatePi
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={loading || selectedDays.length === 0}
+                disabled={loading}
                 className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
