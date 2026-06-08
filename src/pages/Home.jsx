@@ -100,97 +100,99 @@ export default function Home() {
   const TREE_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/2eed85bff_Tree.png";
 
   return (
-    <div className="px-4 pt-6 space-y-5 relative">
-      {/* Monkey + vine — fixed top right, decorative only */}
+    <div className="relative min-h-screen">
+      {/* Monkey + vine — absolute, scoped to Home tab only */}
       <div
-        className="fixed top-0 right-0 z-10 pointer-events-none select-none"
+        className="absolute top-0 right-0 z-10 pointer-events-none select-none"
         style={{ width: '90vw', maxWidth: 500 }}
       >
         <img src={MONKEY_IMG} alt="" className="w-full" />
       </div>
-      {/* Tree — fixed bottom left */}
+      {/* Tree — absolute bottom, scoped to Home tab only */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none fixed left-0 z-0"
+        className="pointer-events-none absolute left-0 z-0"
         style={{ width: '100vw', bottom: '19px' }}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between relative z-20">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            {myMembership?.profile_image ? (
-              <img
-                src={myMembership.profile_image}
-                alt=""
-                className="w-11 h-11 rounded-full object-cover"
-                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
-              />
-            ) : (
-              <div
-                className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center"
-                style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
+      <div className="px-4 pt-6 space-y-5 relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between relative z-20">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              {myMembership?.profile_image ? (
+                <img
+                  src={myMembership.profile_image}
+                  alt=""
+                  className="w-11 h-11 rounded-full object-cover"
+                  style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
+                />
+              ) : (
+                <div
+                  className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center"
+                  style={{ border: `3px solid ${myMembership?.theme_color || '#64B5F6'}` }}
+                >
+                  <span className="text-base font-bold text-primary">
+                    {(user?.full_name || user?.email)?.[0]?.toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{greeting()}</p>
+              <p className="text-base font-bold">
+                {myMembership?.username || user?.full_name || user?.email?.split('@')[0]}
+              </p>
+            </div>
+          </div>
+          <HeaderMenu hasRedDot={false} />
+        </div>
+
+        {/* Circle Switcher */}
+        <CircleSwitcher />
+
+        {/* Tonight Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-1"
+        >
+          <p className="text-xs font-medium text-muted-foreground">
+            {format(new Date(), 'EEEE, MMMM d')}
+          </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-extrabold">Free tonight?</h2>
+            {activeCircle && (
+              <span
+                className="px-3 py-0.5 rounded-full text-xs font-bold text-white"
+                style={{ background: activeCircle.color || 'hsl(var(--primary))' }}
               >
-                <span className="text-base font-bold text-primary">
-                  {(user?.full_name || user?.email)?.[0]?.toUpperCase()}
-                </span>
-              </div>
+                {activeCircle.name}
+              </span>
             )}
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{greeting()}</p>
-            <p className="text-base font-bold">
-              {myMembership?.username || user?.full_name || user?.email?.split('@')[0]}
-            </p>
-          </div>
+        </motion.div>
+
+        {/* Members List */}
+        <div className="space-y-2.5 relative z-10">
+          <AnimatePresence>
+            {members
+              .sort((a, b) => (a.user_email === user?.email ? -1 : 1))
+              .map((member) => (
+                <AvailabilityCard
+                  key={member.id}
+                  member={member}
+                  isMe={member.user_email === user?.email}
+                  onUpdateAvailability={handleUpdateAvailability}
+                />
+              ))}
+          </AnimatePresence>
         </div>
-        <HeaderMenu hasRedDot={false} />
+
+        <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
+        <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />
       </div>
-
-      {/* Circle Switcher */}
-      <CircleSwitcher />
-
-      {/* Tonight Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-1"
-      >
-        <p className="text-xs font-medium text-muted-foreground">
-          {format(new Date(), 'EEEE, MMMM d')}
-        </p>
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-extrabold">Free tonight?</h2>
-          {activeCircle && (
-            <span
-              className="px-3 py-0.5 rounded-full text-xs font-bold text-white"
-              style={{ background: activeCircle.color || 'hsl(var(--primary))' }}
-            >
-              {activeCircle.name}
-            </span>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Members List */}
-      <div className="space-y-2.5 relative z-10">
-        <AnimatePresence>
-          {members
-            .sort((a, b) => (a.user_email === user?.email ? -1 : 1))
-            .map((member) => (
-              <AvailabilityCard
-                key={member.id}
-                member={member}
-                isMe={member.user_email === user?.email}
-                onUpdateAvailability={handleUpdateAvailability}
-              />
-            ))}
-        </AnimatePresence>
-      </div>
-
-      <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
-      <JoinCircleModal open={showJoin} onOpenChange={setShowJoin} />
     </div>
   );
 }
