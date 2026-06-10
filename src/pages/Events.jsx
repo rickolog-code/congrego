@@ -46,7 +46,7 @@ export default function Events() {
   }
 
   return (
-    <div className="px-4 pt-6 space-y-5">
+    <div className="px-4 pt-6 space-y-5 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold">Events</h1>

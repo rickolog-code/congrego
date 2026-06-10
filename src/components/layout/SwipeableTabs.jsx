@@ -1,20 +1,22 @@
 import { useRef, useState, Children } from 'react';
 import { motion } from 'framer-motion';
 
-const SWIPE_THRESHOLD = 50; // px needed to trigger a tab change
+const SWIPE_THRESHOLD = 50;
 
 export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
   const count = Children.count(children);
   const childArray = Children.toArray(children);
 
-  // Track touch start
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
-  const locked = useRef(null); // 'horizontal' | 'vertical' | null
+  const locked = useRef(null);
 
   const [dragX, setDragX] = useState(0);
   const [isActiveDrag, setIsActiveDrag] = useState(false);
   const isDragging = useRef(false);
+
+  // Per-tab scroll refs so each tab scrolls independently
+  const scrollRefs = useRef(childArray.map(() => ({ scrollTop: 0 })));
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -39,7 +41,6 @@ export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
 
     if (locked.current !== 'horizontal') return;
 
-    // Prevent swiping past first/last tab (add resistance)
     const atStart = tabIndex === 0 && dx > 0;
     const atEnd = tabIndex === count - 1 && dx < 0;
     const resistance = 0.3;
@@ -64,19 +65,17 @@ export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
     touchStartX.current = null;
   };
 
-  // Width of the container (use window width)
   const W = typeof window !== 'undefined' ? window.innerWidth : 375;
 
   return (
     <div
-      className="overflow-hidden w-full relative"
-      style={{ minHeight: '100%' }}
+      className="w-full h-full overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <motion.div
-        className="flex w-full"
+        className="flex h-full"
         animate={{ x: -(tabIndex * W) + dragX }}
         transition={isActiveDrag
           ? { type: 'tween', duration: 0 }
@@ -88,6 +87,7 @@ export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
           <div
             key={i}
             style={{ width: `${100 / count}%`, flexShrink: 0 }}
+            className="h-full overflow-y-auto overflow-x-hidden"
           >
             {child}
           </div>

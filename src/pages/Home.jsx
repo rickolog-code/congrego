@@ -100,7 +100,7 @@ export default function Home() {
   const TREE_IMG = "https://media.base44.com/images/public/69ff930a3528037ceadeeade/2eed85bff_Tree.png";
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-full pb-24">
       {/* Monkey + vine — absolute, scoped to Home tab only */}
       <div
         className="absolute top-0 right-0 z-10 pointer-events-none select-none"
@@ -108,12 +108,12 @@ export default function Home() {
       >
         <img src={MONKEY_IMG} alt="" className="w-full" />
       </div>
-      {/* Tree — absolute bottom, scoped to Home tab only */}
+      {/* Tree — stays just above the nav bar using fixed positioning */}
       <img
         src={TREE_IMG}
         alt=""
-        className="pointer-events-none absolute left-0 z-0"
-        style={{ width: '100vw', bottom: '19px' }}
+        className="pointer-events-none fixed left-0 z-0"
+        style={{ width: '100vw', maxWidth: 512, bottom: '64px' }}
       />
 
       <div className="px-4 pt-6 space-y-5 relative z-10">

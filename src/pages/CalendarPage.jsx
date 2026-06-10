@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCircle } from '@/lib/useCircleContext.jsx';
-import { format, isSameDay, eachDayOfInterval, parseISO, getDay, getYear } from 'date-fns';
+import { format, isSameDay, eachDayOfInterval, parseISO, getDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { MapPin, Clock, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
@@ -10,27 +10,28 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CalendarGrid from '@/components/calendar/CalendarGrid';
 import CreateEventModal from '@/components/calendar/CreateEventModal';
-import SetBusyButton from '@/components/calendar/SetBusyButton';
 import BusyDatePickOverlay from '@/components/calendar/BusyDatePickOverlay';
 import EditBusyEventModal from '@/components/calendar/EditBusyEventModal';
 import HolidayBadge from '@/components/calendar/HolidayBadge';
 import { getHolidays } from '@/lib/holidays';
 
+// Strip internal sync prefixes like [gcal:uid] or [apple:uid]
 function cleanTitle(title) {
-  return title?.replace(/^\[gcal:[^\]]+\]\s*/, '') || '';
+  return title?.replace(/^\[(gcal|apple):[^\]]+\]\s*/, '') || '';
 }
 
-export default function CalendarPage() {
+// A synced event is one that came from Google or Apple calendar sync
+function isSyncedEvent(title) {
+  return /^\[(gcal|apple):/.test(title || '');
+}
+
+export default function CalendarPage({ datePickRequest, onOverlayConfirm, onOverlayCancel }) {
   const { activeCircleId, activeCircle, user } = useCircle();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingBusyEvent, setEditingBusyEvent] = useState(null);
   const eventsRef = useRef(null);
-
-  // Date-pick overlay state
-  // { for: 'busy'|'recurring', singleMode: bool, resolve: fn }
-  const [datePickRequest, setDatePickRequest] = useState(null);
 
   const { data: events = [] } = useQuery({
     queryKey: ['calendar-events', activeCircleId],
@@ -79,9 +80,12 @@ export default function CalendarPage() {
         }
       });
     }
+    // Synced calendar events: if the creator has privacy mode on, treat as busy on that date
+    else if (e.event_type === 'event' && isSyncedEvent(e.title) && privacyByEmail[e.creator_email] && e.creator_email !== user?.email) {
+      if (e.event_date) addBusy(e.event_date, e.creator_email);
+    }
   });
 
-  // Build holidays for current year and next (so December→January works)
   const now = new Date();
   const holidays = { ...getHolidays(now.getFullYear()), ...getHolidays(now.getFullYear() + 1) };
   const selectedHoliday = selectedDate ? holidays[format(selectedDate, 'yyyy-MM-dd')] : null;
@@ -112,25 +116,6 @@ export default function CalendarPage() {
     }, 100);
   };
 
-  // Called by SetBusyButton/modals when they need the user to pick dates
-  const requestDatePick = ({ singleMode, for: forWhom }) => {
-    return new Promise((resolve) => {
-      setDatePickRequest({ singleMode, for: forWhom, resolve });
-    });
-  };
-
-  const handleOverlayConfirm = (start, end) => {
-    const resolve = datePickRequest?.resolve;
-    setDatePickRequest(null);
-    resolve?.({ start, end });
-  };
-
-  const handleOverlayCancel = () => {
-    const resolve = datePickRequest?.resolve;
-    setDatePickRequest(null);
-    resolve?.(null);
-  };
-
   if (!activeCircleId) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -153,8 +138,8 @@ export default function CalendarPage() {
           <BusyDatePickOverlay
             singleMode={datePickRequest.singleMode}
             members={members}
-            onConfirm={handleOverlayConfirm}
-            onCancel={handleOverlayCancel}
+            onConfirm={onOverlayConfirm}
+            onCancel={onOverlayCancel}
           />
         ) : (
           <>
@@ -169,7 +154,6 @@ export default function CalendarPage() {
               holidays={holidays}
             />
 
-            {/* Member Color Legend */}
             {members.length > 0 && (
               <div className="flex flex-wrap gap-2 px-1">
                 {members.map((m) => (
@@ -183,7 +167,6 @@ export default function CalendarPage() {
           </>
         )}
 
-        {/* Selected Date Section */}
         <div ref={eventsRef}>
           {selectedDate && !datePickRequest && (
             <div className="space-y-3">
@@ -201,11 +184,10 @@ export default function CalendarPage() {
               <AnimatePresence>
                 {selectedEvents.map((event) => {
                   const userColor = colorByEmail[event.creator_email] || '#64B5F6';
+                  const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
+                  const isOwner = event.creator_email === user?.email;
 
                   if (event.event_type === 'busy') {
-                    const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
-                    const isOwner = event.creator_email === user?.email;
-                    // busy events already show "[name] is busy" — no further masking needed
                     return (
                       <motion.div
                         key={event.id}
@@ -249,11 +231,12 @@ export default function CalendarPage() {
                     );
                   }
 
+                  // For synced events from another user with privacy mode on — show as busy
+                  const synced = isSyncedEvent(event.title);
+                  const isPrivate = !isOwner && (privacyByEmail[event.creator_email] && synced || privacyByEmail[event.creator_email]);
                   const rawTitle = cleanTitle(event.title);
-                  const creatorName = event.creator_name || event.creator_email?.split('@')[0] || 'Unknown';
-                  const isOwner = event.creator_email === user?.email;
-                  const isPrivate = privacyByEmail[event.creator_email] && !isOwner;
                   const title = isPrivate ? `${creatorName} is busy` : rawTitle;
+
                   return (
                     <motion.div
                       key={event.id}
@@ -315,8 +298,6 @@ export default function CalendarPage() {
         </div>
 
         <CreateEventModal open={showCreate} onOpenChange={setShowCreate} selectedDate={selectedDate} />
-
-        <SetBusyButton onRequestDatePick={requestDatePick} />
       </div>
 
       <EditBusyEventModal

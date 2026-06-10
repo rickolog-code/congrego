@@ -92,7 +92,7 @@ export default function SetBusyButton({ onRequestDatePick }) {
           bounceDamping: 20,
           bounceStiffness: 300,
         }}
-        style={{ x, y, position: 'fixed', bottom: 96, right: 16, zIndex: 30 }}
+        style={{ x, y, position: 'fixed', bottom: 88, right: 16, zIndex: 40 }}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
