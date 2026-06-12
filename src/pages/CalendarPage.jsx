@@ -258,6 +258,7 @@ export default function CalendarPage({ datePickRequest, onOverlayConfirm, onOver
                         {!isPrivate && event.description && <p className="text-xs text-muted-foreground">{event.description}</p>}
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           {event.event_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.event_time}</span>}
+
                           {!isPrivate && event.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>}
                         </div>
                         <p className="text-base font-bold" style={{ color: userColor }}>{creatorName}</p>

@@ -2,17 +2,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * Syncs Google Calendar events for ALL app users who have connected their Google Calendar.
- * Designed to be called both by the scheduled automation (no user JWT) and by the frontend (with user JWT).
- * All entity operations use asServiceRole to bypass RLS.
- *
- * Key design decisions:
- * - singleEvents=true expands recurring events into individual instances
- * - We paginate through ALL pages of results (no maxResults cap) so nothing is missed
- * - We use a 60-day window to match what CalendarPage displays
- * - Times are extracted directly from the ISO offset string (e.g. T10:00:00-04:00 → 10:00 AM)
- *   to avoid Deno's server UTC timezone shifting the displayed time
- * - After fetching, we delete any previously-synced gcal events whose IDs are no longer in the
- *   current window (handles deleted/rescheduled events and clears stale duplicates)
+ * - Fetches ALL user calendars (not just primary) so work/personal/shared calendars are included
+ * - Stores both start and end times for each event
+ * - Paginates through all results (250 per page) so no events are missed
+ * - Cleans up stale events that were deleted from Google
  */
 
 const CONNECTOR_ID = '6a134e97b8274a0809c582f7';
@@ -52,49 +45,66 @@ Deno.serve(async (req) => {
 
         const now = new Date();
         const timeMin = now.toISOString();
-        // 60-day window to match what the calendar UI shows
         const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Fetch ALL pages of events from the primary Google Calendar
-        const allGcalEvents = [];
-        let pageToken = null;
+        // Step 1: Get all calendars for this user
+        const calListRes = await fetch(
+          'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250',
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const calListData = calListRes.ok ? await calListRes.json() : { items: [] };
+        const calendars = (calListData.items || []).filter(c => c.selected !== false);
 
-        do {
-          const params = new URLSearchParams({
-            timeMin,
-            timeMax,
-            singleEvents: 'true',
-            orderBy: 'startTime',
-            maxResults: '250', // max allowed per page
-          });
-          if (pageToken) params.set('pageToken', pageToken);
+        // If calendarList fails, fall back to primary only
+        const calendarIds = calendars.length > 0
+          ? calendars.map(c => c.id)
+          : ['primary'];
 
-          const gcalRes = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
+        // Step 2: Fetch events from all calendars, collect unique events by ID
+        const allEventsById = new Map();
 
-          if (!gcalRes.ok) break;
+        for (const calId of calendarIds) {
+          let pageToken = null;
+          do {
+            const params = new URLSearchParams({
+              timeMin,
+              timeMax,
+              singleEvents: 'true',
+              orderBy: 'startTime',
+              maxResults: '250',
+            });
+            if (pageToken) params.set('pageToken', pageToken);
 
-          const gcalData = await gcalRes.json();
-          const items = gcalData.items || [];
-          for (const ev of items) allGcalEvents.push(ev);
+            const gcalRes = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?${params}`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
 
-          pageToken = gcalData.nextPageToken || null;
-        } while (pageToken);
+            if (!gcalRes.ok) break;
 
-        // Build a set of IDs coming in from Google for stale-cleanup below
-        const incomingIds = new Set();
+            const gcalData = await gcalRes.json();
+            for (const ev of (gcalData.items || [])) {
+              if (ev.status !== 'cancelled' && ev.start && !allEventsById.has(ev.id)) {
+                allEventsById.set(ev.id, ev);
+              }
+            }
 
-        for (const event of allGcalEvents) {
-          if (event.status === 'cancelled' || !event.start) continue;
+            pageToken = gcalData.nextPageToken || null;
+          } while (pageToken);
+        }
 
+        const incomingIds = new Set(allEventsById.keys());
+
+        // Step 3: Upsert events into all circles
+        for (const event of allEventsById.values()) {
           const startDate = event.start.date || extractDate(event.start.dateTime);
           if (!startDate) continue;
 
           const startTime = extractTime(event.start.dateTime);
+          const endTime = extractTime(event.end?.dateTime);
+          const timeDisplay = startTime && endTime ? `${startTime} – ${endTime}` : (startTime || null);
+
           const gcalTitle = `[gcal:${event.id}] ${event.summary || 'Busy'}`;
-          incomingIds.add(event.id);
 
           for (const membership of memberships) {
             const existing = await base44.asServiceRole.entities.CalendarEvent.filter({
@@ -104,14 +114,13 @@ Deno.serve(async (req) => {
             });
 
             if (existing && existing.length > 0) {
-              // Clean up any duplicates, keep the first
               for (let i = 1; i < existing.length; i++) {
                 await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
               }
               await base44.asServiceRole.entities.CalendarEvent.update(existing[0].id, {
                 title: gcalTitle,
                 event_date: startDate,
-                event_time: startTime,
+                event_time: timeDisplay,
                 location: event.location || '',
                 description: event.description || '',
               });
@@ -123,7 +132,7 @@ Deno.serve(async (req) => {
                 external_uid: event.id,
                 description: event.description || '',
                 event_date: startDate,
-                event_time: startTime,
+                event_time: timeDisplay,
                 location: event.location || '',
                 creator_email: user.email,
                 creator_name: membership.username || user.full_name || user.email?.split('@')[0],
@@ -134,8 +143,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Remove any previously-synced gcal events that are no longer in the window
-        // (deleted events, past events rolling out of the 60-day window, etc.)
+        // Step 4: Delete stale gcal events no longer in the window
         for (const membership of memberships) {
           const existingGcal = await base44.asServiceRole.entities.CalendarEvent.filter({
             circle_id: membership.circle_id,
@@ -149,7 +157,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Mark memberships as synced
+        // Step 5: Mark memberships as synced
         for (const membership of memberships) {
           if (!membership.calendar_synced) {
             await base44.asServiceRole.entities.CircleMember.update(membership.id, { calendar_synced: true });
@@ -174,7 +182,6 @@ Deno.serve(async (req) => {
 
 /**
  * Extract YYYY-MM-DD from a dateTime string like "2026-06-12T10:00:00-04:00".
- * We split on T and take the date part, which is always the local calendar date.
  */
 function extractDate(dateTime) {
   if (!dateTime) return null;
@@ -183,8 +190,8 @@ function extractDate(dateTime) {
 
 /**
  * Extract local time from a dateTime string like "2026-06-12T10:00:00-04:00".
- * The digits before the timezone offset ARE the local event time — we read them directly
- * instead of using new Date() which would convert to Deno's server UTC timezone.
+ * Reads the wall-clock digits directly before the offset — never uses new Date()
+ * which would shift to Deno's server UTC timezone.
  */
 function extractTime(dateTime) {
   if (!dateTime) return null;
