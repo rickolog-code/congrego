@@ -81,13 +81,20 @@ Deno.serve(async (req) => {
             const startDate = event.start.date || event.start.dateTime?.split('T')[0];
             if (!startDate) continue;
 
-            const startTime = event.start.dateTime
-              ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })
-              : null;
+            // Parse time directly from the ISO string to avoid Deno server timezone shifting
+            let startTime = null;
+            if (event.start.dateTime) {
+              // event.start.dateTime looks like "2024-06-12T08:00:00-04:00"
+              // Extract the local time digits directly — don't use new Date() which converts to server TZ
+              const timeMatch = event.start.dateTime.match(/T(\d{2}):(\d{2})/);
+              if (timeMatch) {
+                const hh = parseInt(timeMatch[1], 10);
+                const mm = timeMatch[2];
+                const ampm = hh >= 12 ? 'PM' : 'AM';
+                const h12 = hh % 12 || 12;
+                startTime = `${h12}:${mm} ${ampm}`;
+              }
+            }
 
             const gcalTitle = `[gcal:${event.id}] ${event.summary || 'Busy'}`;
 

@@ -6,7 +6,8 @@ import Home from '@/pages/Home';
 import Events from '@/pages/Events';
 import CalendarPage from '@/pages/CalendarPage';
 import SetBusyButton from '@/components/calendar/SetBusyButton';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 
 const TAB_PATHS = ['/', '/events', '/calendar'];
 const CALENDAR_TAB = 2;
@@ -18,6 +19,19 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   const tabIndex = Math.max(0, TAB_PATHS.indexOf(location.pathname));
+
+  // Re-sync calendars silently every time the app is opened (mounted)
+  useEffect(() => {
+    async function syncCalendars() {
+      try {
+        // Google sync (no-op if user hasn't connected)
+        base44.functions.invoke('syncGoogleCalendars', {}).catch(() => {});
+        // Apple sync (no-op if no stored credentials)
+        base44.functions.invoke('syncAppleCalendar', {}).catch(() => {});
+      } catch (_) {}
+    }
+    syncCalendars();
+  }, []);
 
   // DatePick request state — lives here so FAB (fixed) can work with CalendarPage
   const [datePickRequest, setDatePickRequest] = useState(null);

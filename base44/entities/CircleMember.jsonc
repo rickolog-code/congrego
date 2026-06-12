@@ -59,6 +59,14 @@
       ],
       "description": "Which calendar provider the user synced with"
     },
+    "apple_id": {
+      "type": "string",
+      "description": "Stored Apple ID for background re-sync"
+    },
+    "apple_app_password": {
+      "type": "string",
+      "description": "Stored Apple app-specific password for background re-sync"
+    },
     "theme_color": {
       "type": "string",
       "description": "User's chosen theme color (hex)",
