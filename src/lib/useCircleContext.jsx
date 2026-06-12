@@ -44,20 +44,26 @@ export function CircleProvider({ children }) {
     (memberships.length > 0 && membershipsFetching) ||
     (circleIds.length > 0 && circlesLoading);
 
-  // Backfill circle_ids / hosted_circle_ids on the User record if missing (for existing users)
+  // Keep circle_ids / hosted_circle_ids on User exactly in sync with current memberships.
+  // This ensures RLS for Posts and CalendarEvents never leaks data from circles the user
+  // has left or been kicked from.
   useEffect(() => {
-    if (!user || membershipsLoading || memberships.length === 0) return;
+    if (!user || membershipsLoading) return;
     const memberCircleIds = memberships.map(m => m.circle_id);
     const hostedCircleIds = memberships.filter(m => m.role === 'host').map(m => m.circle_id);
     const existingIds = user.circle_ids || [];
     const existingHostedIds = user.hosted_circle_ids || [];
-    const needsUpdate =
-      memberCircleIds.some(id => !existingIds.includes(id)) ||
-      hostedCircleIds.some(id => !existingHostedIds.includes(id));
-    if (needsUpdate) {
+    // Compare exact sets (both additions and removals)
+    const sameIds =
+      memberCircleIds.length === existingIds.length &&
+      memberCircleIds.every(id => existingIds.includes(id));
+    const sameHosted =
+      hostedCircleIds.length === existingHostedIds.length &&
+      hostedCircleIds.every(id => existingHostedIds.includes(id));
+    if (!sameIds || !sameHosted) {
       base44.auth.updateMe({
-        circle_ids: [...new Set([...existingIds, ...memberCircleIds])],
-        hosted_circle_ids: [...new Set([...existingHostedIds, ...hostedCircleIds])],
+        circle_ids: memberCircleIds,
+        hosted_circle_ids: hostedCircleIds,
       }).then(setUser).catch(() => {});
     }
   }, [user, memberships, membershipsLoading]);

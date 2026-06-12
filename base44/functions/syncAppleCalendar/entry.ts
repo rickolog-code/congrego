@@ -15,6 +15,19 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     let { appleId, appPassword } = body;
 
+    // Scheduled call (no JWT) — sync ALL users who have stored Apple credentials
+    if (!user) {
+      const allMembers = await base44.asServiceRole.entities.CircleMember.filter({ calendar_provider: 'apple', calendar_synced: true });
+      const uniqueEmails = [...new Set(allMembers.filter(m => m.apple_id && m.apple_app_password).map(m => m.user_email))];
+      let totalNew = 0, totalUpdated = 0;
+      for (const email of uniqueEmails) {
+        const res = await base44.functions.invoke('syncAppleCalendar', { appleId: allMembers.find(m => m.user_email === email).apple_id, appPassword: allMembers.find(m => m.user_email === email).apple_app_password });
+        if (res?.data?.newEvents) totalNew += res.data.newEvents;
+        if (res?.data?.updatedEvents) totalUpdated += res.data.updatedEvents;
+      }
+      return Response.json({ message: 'Scheduled Apple sync complete', usersProcessed: uniqueEmails.length, newEvents: totalNew, updatedEvents: totalUpdated });
+    }
+
     // If called without credentials (re-sync on app open), load stored credentials
     if (!appleId || !appPassword) {
       const memberships = await base44.asServiceRole.entities.CircleMember.filter({ user_email: user.email });
