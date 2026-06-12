@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { base44 } from '@/api/base44Client';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
 const CALENDAR_CONNECTOR_ID = '6a134e97b8274a0809c582f7';
 
@@ -18,17 +18,19 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
   const appleDetected = isAppleEmail(userEmail);
 
   // 'choose' | 'google' | 'apple'
-  const [step, setStep] = useState(appleDetected ? 'apple' : 'google');
+  const [step, setStep] = useState(appleDetected ? 'apple' : 'choose');
   const [appleId, setAppleId] = useState(userEmail || '');
   const [appPassword, setAppPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const reset = () => {
-    setStep(appleDetected ? 'apple' : 'google');
+    setStep(appleDetected ? 'apple' : 'choose');
     setAppPassword('');
     setError('');
     setLoading(false);
+    setShowPassword(false);
   };
 
   const handleOpenChange = (v) => {
@@ -61,16 +63,22 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
     }
     setLoading(true);
     setError('');
-    const res = await base44.functions.invoke('syncAppleCalendar', {
-      appleId: appleId.trim(),
-      appPassword: appPassword.trim(),
-    });
-    setLoading(false);
-    if (res.data?.error) {
-      setError(res.data.error);
-    } else {
-      onSyncComplete('apple');
-      handleOpenChange(false);
+    try {
+      const res = await base44.functions.invoke('syncAppleCalendar', {
+        appleId: appleId.trim(),
+        appPassword: appPassword.trim(),
+      });
+      setLoading(false);
+      if (res.data?.error) {
+        setError(res.data.error);
+      } else {
+        onSyncComplete('apple');
+        handleOpenChange(false);
+      }
+    } catch (e) {
+      setLoading(false);
+      const msg = e?.response?.data?.error || e?.message || 'Connection failed. Check your details and try again.';
+      setError(msg);
     }
   };
 
@@ -151,20 +159,29 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground">App-Specific Password</label>
-              <Input
-                type="password"
-                placeholder="xxxx-xxxx-xxxx-xxxx"
-                value={appPassword}
-                onChange={(e) => setAppPassword(e.target.value)}
-                className="rounded-xl"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="xxxx-xxxx-xxxx-xxxx"
+                  value={appPassword}
+                  onChange={(e) => setAppPassword(e.target.value)}
+                  className="rounded-xl pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {error && <p className="text-xs text-destructive">{error}</p>}
 
             <Button className="w-full rounded-2xl h-12 font-bold" onClick={handleAppleSync} disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : '🍎 '}
-              {loading ? 'Syncing...' : 'Sync Apple Calendar'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <span className="mr-1">🍎</span>}
+              {loading ? 'Connecting to iCloud…' : 'Connect Apple Calendar'}
             </Button>
           </div>
         )}
