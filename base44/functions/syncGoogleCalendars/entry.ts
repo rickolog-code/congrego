@@ -155,6 +155,8 @@ Deno.serve(async (req) => {
                 event_type: 'event',
               });
               totalSynced++;
+              // Small delay to avoid SDK rate limits on bulk creates
+              await new Promise(r => setTimeout(r, 150));
             }
           }
 
