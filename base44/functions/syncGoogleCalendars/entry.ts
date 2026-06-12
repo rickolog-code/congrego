@@ -4,6 +4,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Syncs Google Calendar events for ALL app users who have connected their Google Calendar.
  * Designed to be called both by the scheduled automation (no user JWT) and by the frontend (with user JWT).
  * All entity operations use asServiceRole to bypass RLS.
+ *
+ * Key design decisions:
+ * - singleEvents=true expands recurring events into individual instances
+ * - We paginate through ALL pages of results (no maxResults cap) so nothing is missed
+ * - We use a 60-day window to match what CalendarPage displays
+ * - Times are extracted directly from the ISO offset string (e.g. T10:00:00-04:00 → 10:00 AM)
+ *   to avoid Deno's server UTC timezone shifting the displayed time
+ * - After fetching, we delete any previously-synced gcal events whose IDs are no longer in the
+ *   current window (handles deleted/rescheduled events and clears stale duplicates)
  */
 
 const CONNECTOR_ID = '6a134e97b8274a0809c582f7';
@@ -12,22 +21,14 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // If called from frontend by a logged-in user, only sync that user.
-    // If called from scheduled automation (no JWT), sync all connected users.
-    let usersToSync = [];
-
     const callerUser = await base44.auth.me().catch(() => null);
 
+    let usersToSync = [];
     if (callerUser) {
-      // Frontend call — sync just this user
       usersToSync = [callerUser];
     } else {
-      // Scheduled call — find all CircleMembers with calendar_synced=true
-      // and get their unique emails to sync
       const syncedMembers = await base44.asServiceRole.entities.CircleMember.filter({ calendar_synced: true });
       const uniqueEmails = [...new Set(syncedMembers.map(m => m.user_email))];
-
-      // Build minimal user objects from emails
       usersToSync = uniqueEmails.map(email => ({ email }));
     }
 
@@ -41,63 +42,61 @@ Deno.serve(async (req) => {
 
     for (const user of usersToSync) {
       try {
-        // Get this user's Google Calendar access token
         const connection = await base44.asServiceRole.connectors.getCurrentAppUserConnection(CONNECTOR_ID, user.email).catch(() => null);
-
         if (!connection?.accessToken) continue;
 
         const { accessToken } = connection;
 
-        // Find this user's circle memberships
         const memberships = await base44.asServiceRole.entities.CircleMember.filter({ user_email: user.email });
         if (!memberships || memberships.length === 0) continue;
 
         const now = new Date();
         const timeMin = now.toISOString();
-        const timeMax = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        // 60-day window to match what the calendar UI shows
+        const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Fetch events from primary Google Calendar
-        const gcalRes = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-          new URLSearchParams({
+        // Fetch ALL pages of events from the primary Google Calendar
+        const allGcalEvents = [];
+        let pageToken = null;
+
+        do {
+          const params = new URLSearchParams({
             timeMin,
             timeMax,
             singleEvents: 'true',
             orderBy: 'startTime',
-            maxResults: '50',
-          }),
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
+            maxResults: '250', // max allowed per page
+          });
+          if (pageToken) params.set('pageToken', pageToken);
 
-        if (!gcalRes.ok) continue;
+          const gcalRes = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
 
-        const gcalData = await gcalRes.json();
-        const events = gcalData.items || [];
+          if (!gcalRes.ok) break;
 
-        for (const membership of memberships) {
-          for (const event of events) {
-            if (event.status === 'cancelled' || !event.start) continue;
+          const gcalData = await gcalRes.json();
+          const items = gcalData.items || [];
+          for (const ev of items) allGcalEvents.push(ev);
 
-            const startDate = event.start.date || event.start.dateTime?.split('T')[0];
-            if (!startDate) continue;
+          pageToken = gcalData.nextPageToken || null;
+        } while (pageToken);
 
-            // Parse time directly from the ISO string to avoid Deno server timezone shifting
-            let startTime = null;
-            if (event.start.dateTime) {
-              // event.start.dateTime looks like "2024-06-12T08:00:00-04:00"
-              // Extract the local time digits directly — don't use new Date() which converts to server TZ
-              const timeMatch = event.start.dateTime.match(/T(\d{2}):(\d{2})/);
-              if (timeMatch) {
-                const hh = parseInt(timeMatch[1], 10);
-                const mm = timeMatch[2];
-                const ampm = hh >= 12 ? 'PM' : 'AM';
-                const h12 = hh % 12 || 12;
-                startTime = `${h12}:${mm} ${ampm}`;
-              }
-            }
+        // Build a set of IDs coming in from Google for stale-cleanup below
+        const incomingIds = new Set();
 
-            const gcalTitle = `[gcal:${event.id}] ${event.summary || 'Busy'}`;
+        for (const event of allGcalEvents) {
+          if (event.status === 'cancelled' || !event.start) continue;
 
+          const startDate = event.start.date || extractDate(event.start.dateTime);
+          if (!startDate) continue;
+
+          const startTime = extractTime(event.start.dateTime);
+          const gcalTitle = `[gcal:${event.id}] ${event.summary || 'Busy'}`;
+          incomingIds.add(event.id);
+
+          for (const membership of memberships) {
             const existing = await base44.asServiceRole.entities.CalendarEvent.filter({
               circle_id: membership.circle_id,
               creator_email: user.email,
@@ -105,7 +104,7 @@ Deno.serve(async (req) => {
             });
 
             if (existing && existing.length > 0) {
-              // Delete duplicates if somehow more than one crept in
+              // Clean up any duplicates, keep the first
               for (let i = 1; i < existing.length; i++) {
                 await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
               }
@@ -127,14 +126,30 @@ Deno.serve(async (req) => {
                 event_time: startTime,
                 location: event.location || '',
                 creator_email: user.email,
-                creator_name: membership.username || user.full_name || user.email.split('@')[0],
+                creator_name: membership.username || user.full_name || user.email?.split('@')[0],
+                event_type: 'event',
               });
               totalSynced++;
             }
           }
         }
 
-        // Mark memberships as calendar_synced
+        // Remove any previously-synced gcal events that are no longer in the window
+        // (deleted events, past events rolling out of the 60-day window, etc.)
+        for (const membership of memberships) {
+          const existingGcal = await base44.asServiceRole.entities.CalendarEvent.filter({
+            circle_id: membership.circle_id,
+            creator_email: user.email,
+            event_type: 'event',
+          });
+          for (const ev of existingGcal) {
+            if (ev.title?.startsWith('[gcal:') && ev.external_uid && !incomingIds.has(ev.external_uid)) {
+              await base44.asServiceRole.entities.CalendarEvent.delete(ev.id);
+            }
+          }
+        }
+
+        // Mark memberships as synced
         for (const membership of memberships) {
           if (!membership.calendar_synced) {
             await base44.asServiceRole.entities.CircleMember.update(membership.id, { calendar_synced: true });
@@ -156,3 +171,28 @@ Deno.serve(async (req) => {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+/**
+ * Extract YYYY-MM-DD from a dateTime string like "2026-06-12T10:00:00-04:00".
+ * We split on T and take the date part, which is always the local calendar date.
+ */
+function extractDate(dateTime) {
+  if (!dateTime) return null;
+  return dateTime.split('T')[0];
+}
+
+/**
+ * Extract local time from a dateTime string like "2026-06-12T10:00:00-04:00".
+ * The digits before the timezone offset ARE the local event time — we read them directly
+ * instead of using new Date() which would convert to Deno's server UTC timezone.
+ */
+function extractTime(dateTime) {
+  if (!dateTime) return null;
+  const m = dateTime.match(/T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const hh = parseInt(m[1], 10);
+  const mm = m[2];
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const h12 = hh % 12 || 12;
+  return `${h12}:${mm} ${ampm}`;
+}
