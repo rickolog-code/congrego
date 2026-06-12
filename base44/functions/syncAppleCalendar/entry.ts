@@ -294,13 +294,13 @@ function parseVEvent(ics) {
 
   const uid = getProp(vevent, 'UID');
   const summary = getProp(vevent, 'SUMMARY') || 'Busy';
-  const dtstart = getPropWithParams(vevent, 'DTSTART');
+  const dtProp = getPropWithParams(vevent, 'DTSTART');
   const description = getProp(vevent, 'DESCRIPTION') || '';
   const location = getProp(vevent, 'LOCATION') || '';
 
-  if (!dtstart || !uid) return null;
+  if (!dtProp || !uid) return null;
 
-  const { eventDate, eventTime } = parseDtstart(dtstart);
+  const { eventDate, eventTime } = parseDtstart(dtProp);
   if (!eventDate) return null;
 
   return { uid, summary, eventDate, eventTime, description, location };
@@ -312,33 +312,68 @@ function getProp(vevent, name) {
   return m ? m[1].trim() : null;
 }
 
-// Get property value even when it has parameters like DTSTART;TZID=...
+// Get property value AND its parameters (e.g. DTSTART;TZID=America/New_York:20240101T090000)
+// Returns { value, tzid, isUtc }
 function getPropWithParams(vevent, name) {
-  const m = vevent.match(new RegExp(`^${name}(?:;[^:]*)?:(.+)$`, 'm'));
-  return m ? m[1].trim() : null;
+  const m = vevent.match(new RegExp(`^${name}((?:;[^:]*)?):(\\S+)$`, 'm'));
+  if (!m) return null;
+  const params = m[1];
+  const value = m[2].trim();
+  const tzidMatch = params.match(/TZID=([^;]+)/i);
+  const tzid = tzidMatch ? tzidMatch[1].trim() : null;
+  const isUtc = value.endsWith('Z');
+  return { value, tzid, isUtc };
 }
 
-function parseDtstart(dtstart) {
-  // Remove trailing Z for processing
-  const clean = dtstart.replace(/Z$/, '').replace(/[^0-9T]/g, (c) => c === 'T' ? 'T' : '');
-  // All-day: YYYYMMDD (8 chars, no T)
-  if (/^\d{8}$/.test(clean)) {
+function parseDtstart(dtProp) {
+  // dtProp is the object from getPropWithParams: { value, tzid, isUtc }
+  // or a plain string (fallback)
+  const raw = typeof dtProp === 'string' ? dtProp : dtProp.value;
+  const tzid = typeof dtProp === 'object' ? dtProp.tzid : null;
+  const isUtc = typeof dtProp === 'object' ? dtProp.isUtc : raw.endsWith('Z');
+
+  // All-day: YYYYMMDD (no time component)
+  if (/^\d{8}$/.test(raw)) {
     return {
-      eventDate: `${clean.slice(0,4)}-${clean.slice(4,6)}-${clean.slice(6,8)}`,
+      eventDate: `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`,
       eventTime: null,
     };
   }
-  // DateTime: YYYYMMDDTHHMMSS
-  const dtMatch = clean.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
-  if (dtMatch) {
-    const [, yr, mo, dy, hh, mm] = dtMatch;
-    const hour = parseInt(hh, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const h12 = hour % 12 || 12;
+
+  // DateTime: YYYYMMDDTHHMMSS[Z]
+  const dtMatch = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?/);
+  if (!dtMatch) return { eventDate: null, eventTime: null };
+
+  const [, yr, mo, dy, hh, mm] = dtMatch;
+
+  if (isUtc) {
+    // UTC — convert to local wall-clock date using JS Date so the calendar
+    // shows the correct day in the user's local context.
+    // We store the date as-is in ISO format so the app can display it correctly.
+    // Since our CalendarEvent.event_date is just a date string we keep UTC date
+    // to avoid ambiguity — show as-is.
+    const utcDate = new Date(`${yr}-${mo}-${dy}T${hh}:${mm}:00Z`);
+    const localYr = utcDate.getUTCFullYear(); // keep UTC date — display layer handles tz
+    const localMo = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+    const localDy = String(utcDate.getUTCDate()).padStart(2, '0');
+    const localHr = utcDate.getUTCHours();
+    const localMin = String(utcDate.getUTCMinutes()).padStart(2, '0');
+    const ampm = localHr >= 12 ? 'PM' : 'AM';
+    const h12 = localHr % 12 || 12;
     return {
-      eventDate: `${yr}-${mo}-${dy}`,
-      eventTime: `${h12}:${mm} ${ampm}`,
+      eventDate: `${localYr}-${localMo}-${localDy}`,
+      eventTime: `${h12}:${localMin} ${ampm}`,
     };
   }
-  return { eventDate: null, eventTime: null };
+
+  // Floating or TZID-based: treat the wall-clock date literally.
+  // (The TZID tells us which timezone, but for date display purposes the
+  //  calendar date is always the date-part of the local event.)
+  const hour = parseInt(hh, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return {
+    eventDate: `${yr}-${mo}-${dy}`,
+    eventTime: `${h12}:${mm} ${ampm}`,
+  };
 }
