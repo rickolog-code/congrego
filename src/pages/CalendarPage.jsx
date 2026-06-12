@@ -126,7 +126,7 @@ export default function CalendarPage({ datePickRequest, onOverlayConfirm, onOver
 
   return (
     <>
-      <div className="px-4 pt-6 space-y-5 pb-8">
+      <div className="px-4 pt-6 space-y-5 pb-24 overflow-y-auto h-full">
         <div>
           <h1 className="text-2xl font-extrabold">Calendar</h1>
           {activeCircle && (
