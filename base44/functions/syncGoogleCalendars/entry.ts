@@ -93,9 +93,23 @@ Deno.serve(async (req) => {
           } while (pageToken);
         }
 
-        const incomingIds = new Set(allEventsById.keys());
+        // Step 3: Wipe ALL existing gcal events for this user across all circles, then insert fresh.
+        // This is the only reliable way to prevent duplicates — upsert logic breaks when old records
+        // have null/mismatched external_uid from earlier sync versions.
+        for (const membership of memberships) {
+          const existingGcal = await base44.asServiceRole.entities.CalendarEvent.filter({
+            circle_id: membership.circle_id,
+            creator_email: user.email,
+            event_type: 'event',
+          });
+          for (const ev of existingGcal) {
+            if (ev.title?.startsWith('[gcal:')) {
+              await base44.asServiceRole.entities.CalendarEvent.delete(ev.id);
+            }
+          }
+        }
 
-        // Step 3: Upsert events into all circles
+        // Step 4: Insert all current events fresh
         for (const event of allEventsById.values()) {
           const startDate = event.start.date || extractDate(event.start.dateTime);
           if (!startDate) continue;
@@ -107,53 +121,19 @@ Deno.serve(async (req) => {
           const gcalTitle = `[gcal:${event.id}] ${event.summary || 'Busy'}`;
 
           for (const membership of memberships) {
-            const existing = await base44.asServiceRole.entities.CalendarEvent.filter({
+            await base44.asServiceRole.entities.CalendarEvent.create({
               circle_id: membership.circle_id,
-              creator_email: user.email,
+              title: gcalTitle,
               external_uid: event.id,
+              description: event.description || '',
+              event_date: startDate,
+              event_time: timeDisplay,
+              location: event.location || '',
+              creator_email: user.email,
+              creator_name: membership.username || user.full_name || user.email?.split('@')[0],
+              event_type: 'event',
             });
-
-            if (existing && existing.length > 0) {
-              for (let i = 1; i < existing.length; i++) {
-                await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
-              }
-              await base44.asServiceRole.entities.CalendarEvent.update(existing[0].id, {
-                title: gcalTitle,
-                event_date: startDate,
-                event_time: timeDisplay,
-                location: event.location || '',
-                description: event.description || '',
-              });
-              totalUpdated++;
-            } else {
-              await base44.asServiceRole.entities.CalendarEvent.create({
-                circle_id: membership.circle_id,
-                title: gcalTitle,
-                external_uid: event.id,
-                description: event.description || '',
-                event_date: startDate,
-                event_time: timeDisplay,
-                location: event.location || '',
-                creator_email: user.email,
-                creator_name: membership.username || user.full_name || user.email?.split('@')[0],
-                event_type: 'event',
-              });
-              totalSynced++;
-            }
-          }
-        }
-
-        // Step 4: Delete stale gcal events no longer in the window
-        for (const membership of memberships) {
-          const existingGcal = await base44.asServiceRole.entities.CalendarEvent.filter({
-            circle_id: membership.circle_id,
-            creator_email: user.email,
-            event_type: 'event',
-          });
-          for (const ev of existingGcal) {
-            if (ev.title?.startsWith('[gcal:') && ev.external_uid && !incomingIds.has(ev.external_uid)) {
-              await base44.asServiceRole.entities.CalendarEvent.delete(ev.id);
-            }
+            totalSynced++;
           }
         }
 
