@@ -172,15 +172,19 @@ Deno.serve(async (req) => {
 
     for (const membership of memberships) {
       for (const ev of allEvents) {
-        const appleTitle = `[apple:${ev.uid}] ${ev.summary}`;
         const existing = await base44.asServiceRole.entities.CalendarEvent.filter({
           circle_id: membership.circle_id,
           creator_email: user.email,
-          title: appleTitle,
+          external_uid: ev.uid,
         });
 
         if (existing && existing.length > 0) {
+          // Delete duplicates if somehow more than one crept in
+          for (let i = 1; i < existing.length; i++) {
+            await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
+          }
           await base44.asServiceRole.entities.CalendarEvent.update(existing[0].id, {
+            title: `[apple:${ev.uid}] ${ev.summary}`,
             event_date: ev.eventDate,
             event_time: ev.eventTime || null,
             description: ev.description || '',
@@ -190,7 +194,8 @@ Deno.serve(async (req) => {
         } else {
           await base44.asServiceRole.entities.CalendarEvent.create({
             circle_id: membership.circle_id,
-            title: appleTitle,
+            title: `[apple:${ev.uid}] ${ev.summary}`,
+            external_uid: ev.uid,
             description: ev.description || '',
             event_date: ev.eventDate,
             event_time: ev.eventTime || null,

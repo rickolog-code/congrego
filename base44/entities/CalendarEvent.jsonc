@@ -42,6 +42,10 @@
       "default": "event",
       "description": "Type of calendar entry"
     },
+    "external_uid": {
+      "type": "string",
+      "description": "Stable UID from external calendar (Google event ID or Apple UID) for dedup"
+    },
     "busy_start_date": {
       "type": "string",
       "format": "date",

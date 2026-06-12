@@ -94,11 +94,16 @@ Deno.serve(async (req) => {
             const existing = await base44.asServiceRole.entities.CalendarEvent.filter({
               circle_id: membership.circle_id,
               creator_email: user.email,
-              title: gcalTitle,
+              external_uid: event.id,
             });
 
             if (existing && existing.length > 0) {
+              // Delete duplicates if somehow more than one crept in
+              for (let i = 1; i < existing.length; i++) {
+                await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
+              }
               await base44.asServiceRole.entities.CalendarEvent.update(existing[0].id, {
+                title: gcalTitle,
                 event_date: startDate,
                 event_time: startTime,
                 location: event.location || '',
@@ -109,6 +114,7 @@ Deno.serve(async (req) => {
               await base44.asServiceRole.entities.CalendarEvent.create({
                 circle_id: membership.circle_id,
                 title: gcalTitle,
+                external_uid: event.id,
                 description: event.description || '',
                 event_date: startDate,
                 event_time: startTime,
