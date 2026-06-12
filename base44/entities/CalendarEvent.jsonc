@@ -92,9 +92,18 @@
   ],
   "rls": {
     "read": {
-      "data.circle_id": {
-        "$in": "{{user.data.circle_ids}}"
-      }
+      "$or": [
+        {
+          "data.circle_id": {
+            "$in": "{{user.data.circle_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "update": {
       "$or": [
