@@ -20,17 +20,17 @@ export default function AppLayout() {
 
   const tabIndex = Math.max(0, TAB_PATHS.indexOf(location.pathname));
 
-  // Re-sync calendars silently every time the app is opened (mounted)
+  // Re-sync calendars silently on app open — but throttle to once per 5 minutes
+  // to prevent concurrent syncs (delete-then-insert races) when the component remounts.
   useEffect(() => {
-    async function syncCalendars() {
-      try {
-        // Google sync (no-op if user hasn't connected)
-        base44.functions.invoke('syncGoogleCalendars', {}).catch(() => {});
-        // Apple sync (no-op if no stored credentials)
-        base44.functions.invoke('syncAppleCalendar', {}).catch(() => {});
-      } catch (_) {}
-    }
-    syncCalendars();
+    const SYNC_KEY = 'congrego_last_cal_sync';
+    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+    const lastSync = parseInt(sessionStorage.getItem(SYNC_KEY) || '0', 10);
+    if (Date.now() - lastSync < COOLDOWN_MS) return;
+    sessionStorage.setItem(SYNC_KEY, String(Date.now()));
+
+    base44.functions.invoke('syncGoogleCalendars', {}).catch(() => {});
+    base44.functions.invoke('syncAppleCalendar', {}).catch(() => {});
   }, []);
 
   // DatePick request state — lives here so FAB (fixed) can work with CalendarPage
