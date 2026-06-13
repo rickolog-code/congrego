@@ -19,6 +19,10 @@ export function useFreeDaySuggestion({ circleId, userEmail, userName }) {
     if (localStorage.getItem(storageKey)) return;
 
     const run = async () => {
+      // Verify the user's circle_ids includes this circle before writing any posts
+      const currentUser = await base44.auth.me();
+      if (!(currentUser?.circle_ids || []).includes(circleId)) return;
+
       const [allEvents, allMembers] = await Promise.all([
         base44.entities.CalendarEvent.filter({ circle_id: circleId }),
         base44.entities.CircleMember.filter({ circle_id: circleId }),
