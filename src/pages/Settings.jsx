@@ -22,7 +22,7 @@ import ColorPickerModal from '@/components/profile/ColorPickerModal';
 import CalendarSyncModal from '@/components/settings/CalendarSyncModal';
 
 export default function Settings() {
-  const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles } = useCircle();
+  const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles, switchCircle } = useCircle();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
@@ -121,6 +121,9 @@ export default function Settings() {
       circle_ids: updatedCircleIds,
       hosted_circle_ids: updatedHostedIds,
     });
+    // Immediately switch to another circle (or null) so the UI doesn't show the left circle
+    const nextCircle = circles.find(c => c.id !== activeCircleId);
+    switchCircle(nextCircle ? nextCircle.id : null);
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     navigate('/');
