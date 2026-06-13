@@ -71,9 +71,10 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       circle_ids: [...new Set([...existingCircleIds, circle.id])],
     });
 
-    // Immediately switch to the joined circle and navigate home — don't wait for refetch
+    // Small delay to let the auth update propagate before refreshing
+    await new Promise(r => setTimeout(r, 300));
+    await refreshCircles();
     switchCircle(circle.id);
-    refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     setLoading(false);
     setCode('');

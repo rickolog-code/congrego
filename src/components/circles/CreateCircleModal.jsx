@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { randomThemeColor } from '@/components/profile/ColorPickerModal';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
@@ -13,8 +14,9 @@ const jungleColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#1
 const jungleIcons = ['🦎', '🌿', '🌴', '🏛️', '🌺', '🌊', '🐒'];
 
 export default function CreateCircleModal({ open, onOpenChange }) {
-  const { user, circles, refreshCircles, isLoadingCircles } = useCircle();
+  const { user, circles, refreshCircles, switchCircle, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [color, setColor] = useState(jungleColors[0]);
   const [icon, setIcon] = useState(jungleIcons[0]);
@@ -57,10 +59,12 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         hosted_circle_ids: [...new Set([...existingHostedIds, circle.id])],
       });
 
-      refreshCircles();
+      await refreshCircles();
+      switchCircle(circle.id);
       queryClient.invalidateQueries({ queryKey: ['circle-members'] });
       setName('');
       onOpenChange(false);
+      navigate('/');
     } finally {
       setLoading(false);
     }
