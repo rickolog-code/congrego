@@ -42,9 +42,12 @@ export default function Events() {
       });
 
       const toDelete = [...stalePosts, ...expiredSuggestions];
-      await Promise.all(toDelete.map(p => base44.entities.Post.delete(p.id)));
+      const deletedIds = new Set();
+      await Promise.all(toDelete.map(p =>
+        base44.entities.Post.delete(p.id).then(() => deletedIds.add(p.id)).catch(() => {})
+      ));
 
-      const remaining = allPosts.filter(p => !toDelete.find(d => d.id === p.id));
+      const remaining = allPosts.filter(p => !deletedIds.has(p.id));
 
       // Enforce max 8 regular/calendar posts — delete oldest beyond limit
       const regularPosts = remaining
@@ -52,8 +55,11 @@ export default function Events() {
         .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
       if (regularPosts.length > 8) {
         const overflow = regularPosts.slice(0, regularPosts.length - 8);
-        await Promise.all(overflow.map(p => base44.entities.Post.delete(p.id)));
-        return remaining.filter(p => !overflow.find(o => o.id === p.id));
+        const overflowDeletedIds = new Set();
+        await Promise.all(overflow.map(p =>
+          base44.entities.Post.delete(p.id).then(() => overflowDeletedIds.add(p.id)).catch(() => {})
+        ));
+        return remaining.filter(p => !overflowDeletedIds.has(p.id));
       }
 
       return remaining;
