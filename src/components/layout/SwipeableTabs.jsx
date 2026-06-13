@@ -91,13 +91,16 @@ export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
         style={{ width: `${count * 100}%` }}
       >
         {childArray.map((child, i) => (
-          <div
+          <motion.div
             key={i}
             style={{ width: `${100 / count}%`, flexShrink: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25, ease: 'easeOut', delay: i * 0.04 }}
             className="h-full overflow-y-auto overflow-x-hidden"
           >
             {child}
-          </div>
+          </motion.div>
         ))}
       </motion.div>
     </div>

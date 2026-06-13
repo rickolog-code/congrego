@@ -5,7 +5,7 @@ import { useCircle } from '@/lib/useCircleContext.jsx';
 
 import { format } from 'date-fns';
 import { Plus, UserPlus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import CircleSwitcher from '@/components/home/CircleSwitcher';
@@ -176,18 +176,22 @@ export default function Home() {
 
         {/* Members List */}
         <div className="space-y-2.5 relative z-10">
-          <AnimatePresence>
-            {members
-              .sort((a, b) => (a.user_email === user?.email ? -1 : 1))
-              .map((member) => (
+          {members
+            .sort((a, b) => (a.user_email === user?.email ? -1 : 1))
+            .map((member, idx) => (
+              <motion.div
+                key={member.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: 'easeOut', delay: idx * 0.06 }}
+              >
                 <AvailabilityCard
-                  key={member.id}
                   member={member}
                   isMe={member.user_email === user?.email}
                   onUpdateAvailability={handleUpdateAvailability}
                 />
-              ))}
-          </AnimatePresence>
+              </motion.div>
+            ))}
         </div>
 
         <CreateCircleModal open={showCreate} onOpenChange={setShowCreate} />
