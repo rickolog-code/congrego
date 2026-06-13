@@ -27,12 +27,36 @@ export default function Events() {
     queryFn: async () => {
       const allPosts = await base44.entities.Post.filter({ circle_id: activeCircleId }, '-created_date');
 
-      // Clean up any stale completed vote posts (those with the old "✅ Vote passed" marker)
+      // Clean up stale completed vote posts
       const stalePosts = allPosts.filter(p => p.post_type === 'vote' && p.content?.includes('✅ Vote passed'));
-      await Promise.all(stalePosts.map(p => base44.entities.Post.delete(p.id)));
 
-      // Return only posts from the active circle, excluding completed vote posts
-      return allPosts.filter(p => !stalePosts.find(s => s.id === p.id));
+      // Auto-delete suggestion posts whose suggested date has passed
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiredSuggestions = allPosts.filter(p => {
+        if (p.post_type !== 'suggestion') return false;
+        const match = p.content?.match(/\*\*(.+?)\*\*/);
+        if (!match) return false;
+        const suggested = new Date(match[1]);
+        return !isNaN(suggested) && suggested < today;
+      });
+
+      const toDelete = [...stalePosts, ...expiredSuggestions];
+      await Promise.all(toDelete.map(p => base44.entities.Post.delete(p.id)));
+
+      const remaining = allPosts.filter(p => !toDelete.find(d => d.id === p.id));
+
+      // Enforce max 8 regular/calendar posts — delete oldest beyond limit
+      const regularPosts = remaining
+        .filter(p => p.post_type === 'regular' || p.post_type === 'calendar_event')
+        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+      if (regularPosts.length > 8) {
+        const overflow = regularPosts.slice(0, regularPosts.length - 8);
+        await Promise.all(overflow.map(p => base44.entities.Post.delete(p.id)));
+        return remaining.filter(p => !overflow.find(o => o.id === p.id));
+      }
+
+      return remaining;
     },
     enabled: !!activeCircleId,
   });

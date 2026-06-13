@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
         const now = new Date();
         const timeMin = now.toISOString();
-        const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        const timeMax = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString();
 
         // Step 1: Get all calendars
         const calListRes = await fetch(

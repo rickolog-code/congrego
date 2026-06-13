@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     // Step 4: Fetch ALL events (no time-range filter so recurring masters are included)
     // Then expand them into occurrences within the next 60 days.
     const now = new Date();
-    const windowEnd = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000);
 
     const allEvents = []; // { uid, summary, eventDate, eventTime, description, location }
 
