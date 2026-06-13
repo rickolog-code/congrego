@@ -26,14 +26,6 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     }
   }, [imageSrc, open]);
 
-  const clamp = (x, y, s) => {
-    const maxOff = Math.max(0, (SIZE * s - SIZE) / 2);
-    return {
-      x: Math.max(-maxOff, Math.min(maxOff, x)),
-      y: Math.max(-maxOff, Math.min(maxOff, y)),
-    };
-  };
-
   const onPointerDown = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -45,11 +37,10 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const onPointerMove = (e) => {
     if (!isDragging.current) return;
     e.preventDefault();
-    const rawX = e.clientX - dragOrigin.current.x;
-    const rawY = e.clientY - dragOrigin.current.y;
-    const clamped = clamp(rawX, rawY, scaleRef.current);
-    posRef.current = clamped;
-    setPos({ ...clamped });
+    const newX = e.clientX - dragOrigin.current.x;
+    const newY = e.clientY - dragOrigin.current.y;
+    posRef.current = { x: newX, y: newY };
+    setPos({ x: newX, y: newY });
   };
 
   const onPointerUp = (e) => {
@@ -75,10 +66,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       const delta = (dist - lastPinchDist.current) / 150;
       const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current + delta));
       scaleRef.current = newScale;
-      const clamped = clamp(posRef.current.x, posRef.current.y, newScale);
-      posRef.current = clamped;
       setScale(newScale);
-      setPos({ ...clamped });
       lastPinchDist.current = dist;
     }
   };
@@ -90,10 +78,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const changeScale = (delta) => {
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current + delta));
     scaleRef.current = newScale;
-    const clamped = clamp(posRef.current.x, posRef.current.y, newScale);
-    posRef.current = clamped;
     setScale(newScale);
-    setPos({ ...clamped });
   };
 
   const handleConfirm = () => {

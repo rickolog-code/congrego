@@ -8,7 +8,7 @@ export default function CircleSwitcher() {
   if (circles.length === 0) return null;
 
   return (
-    <div className="flex gap-2.5 overflow-x-auto pb-1 px-1 scrollbar-hide">
+    <div className="flex gap-2.5 overflow-x-auto pb-1 px-1 scrollbar-hide touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
       {circles.map((circle) => {
         const isActive = circle.id === activeCircleId;
         return (
