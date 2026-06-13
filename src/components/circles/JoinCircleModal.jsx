@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { randomThemeColor } from '@/components/profile/ColorPickerModal';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
@@ -9,8 +10,9 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function JoinCircleModal({ open, onOpenChange }) {
-  const { user, circles, refreshCircles, isLoadingCircles } = useCircle();
+  const { user, circles, refreshCircles, switchCircle, isLoadingCircles } = useCircle();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -69,11 +71,14 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       circle_ids: [...new Set([...existingCircleIds, circle.id])],
     });
 
+    // Immediately switch to the joined circle and navigate home — don't wait for refetch
+    switchCircle(circle.id);
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     setLoading(false);
     setCode('');
     onOpenChange(false);
+    navigate('/');
   };
 
   return (

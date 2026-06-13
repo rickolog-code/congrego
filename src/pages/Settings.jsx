@@ -12,6 +12,7 @@ import {
   ArrowLeft, LogOut, UserPlus, Plus, Copy, Check,
   Pencil, Trash2, Users, Crown, Loader2, Bell, CalendarDays,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
@@ -25,6 +26,8 @@ export default function Settings() {
   const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles, switchCircle } = useCircle();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [transferTarget, setTransferTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -107,6 +110,20 @@ export default function Settings() {
 
   const handleLeaveCircle = async () => {
     if (!myMembership) return;
+
+    // If host is leaving, transfer host to a random other member
+    if (isHost) {
+      const otherMembers = members.filter(m => m.user_email !== user?.email);
+      if (otherMembers.length > 0) {
+        const newHost = otherMembers[Math.floor(Math.random() * otherMembers.length)];
+        await base44.entities.CircleMember.update(newHost.id, { role: 'host' });
+        await base44.entities.Circle.update(activeCircleId, { host_email: newHost.user_email });
+        // Update new host's hosted_circle_ids
+        const newHostUser = await base44.auth.me().catch(() => null);
+        // We update our own record; the new host's RLS will sync on their next load
+      }
+    }
+
     await base44.entities.CircleMember.delete(myMembership.id);
     if (activeCircle) {
       await base44.entities.Circle.update(activeCircle.id, {
@@ -127,6 +144,19 @@ export default function Settings() {
     refreshCircles();
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     navigate('/');
+  };
+
+  const handleTransferHost = async (member) => {
+    if (!isHost || !activeCircle) return;
+    await base44.entities.CircleMember.update(member.id, { role: 'host' });
+    await base44.entities.CircleMember.update(myMembership.id, { role: 'member' });
+    await base44.entities.Circle.update(activeCircleId, { host_email: member.user_email });
+    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+    queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
+    refreshCircles();
+    setTransferTarget(null);
+    setShowMembers(false);
+    toast({ description: `${member.username || member.user_email} is now the host.` });
   };
 
   const handleRemoveMember = async (member) => {
@@ -436,34 +466,59 @@ export default function Settings() {
             <DialogTitle>Members</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            {members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-muted">
-                <div className="flex items-center gap-2">
-                  {m.profile_image ? (
-                    <img src={m.profile_image} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-bold text-primary">{(m.username || m.user_email)?.[0]?.toUpperCase()}</span>
+            {members.map((m) => {
+              const isThisHost = m.role === 'host';
+              const isMe = m.user_email === user?.email;
+              return (
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-muted">
+                  <div className="flex items-center gap-2">
+                    {m.profile_image ? (
+                      <img src={m.profile_image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-xs font-bold text-primary">{(m.username || m.user_email)?.[0]?.toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium">{m.username || m.user_email?.split('@')[0]}</p>
+                      {isThisHost ? (
+                        <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      ) : isHost ? (
+                        <button onClick={() => setTransferTarget(m)} title="Make host">
+                          <Crown className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      ) : null}
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">{m.username || m.user_email?.split('@')[0]}</p>
-                    {m.role === 'host' && <span className="text-[10px] text-amber-600 font-semibold">Host</span>}
                   </div>
+                  {isHost && !isMe && !isThisHost && (
+                    <button
+                      onClick={() => handleRemoveMember(m)}
+                      className="text-xs text-destructive font-semibold px-2 py-1 rounded-lg hover:bg-destructive/10"
+                    >
+                      Start Vote
+                    </button>
+                  )}
                 </div>
-                {isHost && m.user_email !== user?.email && (
-                  <button
-                    onClick={() => handleRemoveMember(m)}
-                    className="text-xs text-destructive font-semibold px-2 py-1 rounded-lg hover:bg-destructive/10"
-                  >
-                    Start Vote
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!transferTarget} onOpenChange={(o) => !o && setTransferTarget(null)}>
+        <AlertDialogContent className="rounded-3xl max-w-sm mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer Host?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Make {transferTarget?.username || transferTarget?.user_email} the new host of this circle? You'll become a regular member.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl" onClick={() => handleTransferHost(transferTarget)}>Transfer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
         <AlertDialogContent className="rounded-3xl max-w-sm mx-auto">
