@@ -94,14 +94,9 @@ export default function AvailabilityCard({ member, isMe, onUpdateAvailability })
           ].map(({ status, icon: Icon }) => (
             <motion.button
               key={status}
-              animate={currentAvail === status
-                ? { scale: 1.12 }
-                : { scale: 1 }
-              }
-              whileTap={isMe ? { scale: 0.82 } : {}}
-              transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+              whileTap={isMe ? { scale: 0.85 } : {}}
               onClick={() => handleSelect(status)}
-              className={`w-9 h-9 rounded-full border-2 flex items-center justify-center ${
+              className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                 currentAvail === status ? statusColors[status] : 'bg-background border-border text-muted-foreground'
               } ${isMe ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
             >
