@@ -149,22 +149,32 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
         {step === 'apple' && (
           <div className="space-y-4">
             {!appleDetected && (
-              <button onClick={() => setStep('choose')} className="text-xs text-muted-foreground underline">
+              <button onClick={() => setStep('choose')} className="text-xs text-muted-foreground underline flex items-center gap-1">
                 ← Use Google Calendar instead
               </button>
             )}
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 space-y-1">
-              <p className="font-semibold">App-Specific Password Required</p>
-              <p>Apple requires a special password for third-party apps. Your regular Apple ID password won't work.</p>
-              <a
-                href="https://appleid.apple.com/account/manage"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 font-semibold text-amber-900 underline mt-1"
-              >
-                Generate one at appleid.apple.com <ExternalLink className="w-3 h-3" />
-              </a>
-              <p className="text-amber-600">Security → App-Specific Passwords → + sign</p>
+
+            {/* Info box */}
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-xs text-amber-900 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-amber-700"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                </div>
+                <p className="leading-snug">
+                  Apple requires a special password that takes a few seconds to generate{' '}
+                  <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-amber-900">here</a>.
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-amber-800 flex-wrap">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-amber-700 flex-shrink-0"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>Security</span>
+                <span>→</span>
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-amber-700 flex-shrink-0"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>App-Specific Passwords</span>
+                <span>→</span>
+                <span>+ sign</span>
+              </div>
+              <p className="font-bold text-amber-900">This is NOT your Apple ID password</p>
             </div>
 
             <div className="space-y-2">
@@ -177,12 +187,16 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
                 className="rounded-xl"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground">App-Specific Password</label>
+              <label className="text-xs font-semibold text-muted-foreground">
+                Generate your password{' '}
+                <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="underline text-primary">here</a>
+              </label>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="xxxx-xxxx-xxxx-xxxx"
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
                   value={appPassword}
                   onChange={(e) => setAppPassword(e.target.value)}
                   className="rounded-xl pr-10"
@@ -199,10 +213,21 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
 
             {error && <p className="text-xs text-destructive">{error}</p>}
 
-            <Button className="w-full rounded-2xl h-12 font-bold" onClick={handleAppleSync} disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <span className="mr-1">🍎</span>}
+            {/* Apple-style connect button */}
+            <button
+              onClick={handleAppleSync}
+              disabled={loading}
+              className="w-full rounded-full h-14 bg-gray-100 border border-gray-300 shadow-inner flex items-center justify-center gap-3 font-bold text-base text-gray-900 disabled:opacity-60 transition-transform active:scale-95"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <svg viewBox="0 0 814 1000" className="w-5 h-5 fill-gray-900" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+                </svg>
+              )}
               {loading ? 'Connecting to iCloud…' : 'Connect Apple Calendar'}
-            </Button>
+            </button>
           </div>
         )}
       </DialogContent>
