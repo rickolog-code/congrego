@@ -134,9 +134,9 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
         <div className="flex flex-col items-center gap-4">
           <p className="text-xs text-muted-foreground text-center">Drag or pinch to adjust</p>
 
-          {/* Outer: handles events, no overflow clipping */}
+          {/* Crop circle — overflow-hidden clips the preview only, not the drag */}
           <div
-            className="relative select-none touch-none"
+            className="relative overflow-hidden rounded-full border-4 border-primary shadow-lg select-none touch-none"
             style={{ width: SIZE, height: SIZE, flexShrink: 0, cursor: isDragging.current ? 'grabbing' : 'grab' }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -146,7 +146,6 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            {/* Image: free to extend beyond container */}
             <img
               src={imageSrc}
               alt="crop preview"
@@ -163,34 +162,6 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
                 pointerEvents: 'none',
               }}
             />
-            {/* Visual circular mask on top — clips only the display, never the image itself */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                pointerEvents: 'none',
-                boxShadow: '0 0 0 4px hsl(var(--primary)), 0 8px 24px hsl(var(--primary) / 0.3)',
-              }}
-            >
-              <img
-                src={imageSrc}
-                alt=""
-                draggable={false}
-                style={{
-                  position: 'absolute',
-                  width: naturalSize.w * scale,
-                  height: naturalSize.h * scale,
-                  top: '50%',
-                  left: '50%',
-                  transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
-                  objectFit: 'cover',
-                  userSelect: 'none',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
           </div>
 
           {/* Zoom controls */}
