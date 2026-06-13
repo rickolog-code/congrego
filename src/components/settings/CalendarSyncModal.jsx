@@ -97,7 +97,8 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
               {/* Google Card */}
               <button
                 onClick={() => setStep('google')}
-                className="flex flex-col items-center justify-between gap-3 rounded-3xl p-5 bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-2 ring-primary/60 transition-transform active:scale-95"
+                className="flex flex-col items-center justify-between gap-3 rounded-3xl p-5 text-primary-foreground transition-transform active:scale-95"
+                style={{ background: 'linear-gradient(145deg, hsl(152,60%,32%), hsl(152,50%,22%))', boxShadow: '0 6px 24px hsl(152 55% 28% / 0.55), 0 2px 8px hsl(152 55% 28% / 0.3)' }}
               >
                 <img
                   src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png"
@@ -111,7 +112,8 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
               {/* Apple Card */}
               <button
                 onClick={() => setStep('apple')}
-                className="flex flex-col items-center justify-between gap-3 rounded-3xl p-5 bg-gray-100 text-gray-900 shadow-lg shadow-gray-400/30 ring-2 ring-gray-300 transition-transform active:scale-95"
+                className="flex flex-col items-center justify-between gap-3 rounded-3xl p-5 text-gray-900 transition-transform active:scale-95"
+                style={{ background: 'linear-gradient(145deg, #e8e8e8, #d0d0d0)', boxShadow: '0 6px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)' }}
               >
                 {/* Real Apple logo SVG */}
                 <svg viewBox="0 0 814 1000" className="w-12 h-12 fill-gray-900" xmlns="http://www.w3.org/2000/svg">
@@ -155,26 +157,24 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
             )}
 
             {/* Info box */}
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-xs text-amber-900 space-y-2">
+            <div className="border rounded-2xl p-4 text-xs space-y-2" style={{ background: 'linear-gradient(135deg, #ffb347, #ffa020)', borderColor: '#f90' }}>
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-amber-700"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(255,255,255,0.3)' }}>
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 </div>
-                <p className="leading-snug">
+                <p className="leading-snug text-gray-700">
                   Apple requires a special password that takes a few seconds to generate{' '}
-                  <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-amber-900">here</a>.
+                  <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-gray-800">here</a>.
                 </p>
               </div>
-              <div className="flex items-center gap-1 text-amber-800 flex-wrap">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-amber-700 flex-shrink-0"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <div className="flex items-center gap-1 text-gray-600 flex-wrap">
                 <span>Security</span>
                 <span>→</span>
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-amber-700 flex-shrink-0"><path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm1 16h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 <span>App-Specific Passwords</span>
                 <span>→</span>
                 <span>+ sign</span>
               </div>
-              <p className="font-bold text-amber-900">This is NOT your Apple ID password</p>
+              <p className="font-bold text-gray-800">This is NOT your Apple ID password</p>
             </div>
 
             <div className="space-y-2">
@@ -189,10 +189,9 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground">
-                Generate your password{' '}
-                <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="underline text-primary">here</a>
-              </label>
+              <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-muted-foreground underline">
+                Generate your password here
+              </a>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
@@ -217,7 +216,8 @@ export default function CalendarSyncModal({ open, onOpenChange, userEmail, onSyn
             <button
               onClick={handleAppleSync}
               disabled={loading}
-              className="w-full rounded-full h-14 bg-gray-100 border border-gray-300 shadow-inner flex items-center justify-center gap-3 font-bold text-base text-gray-900 disabled:opacity-60 transition-transform active:scale-95"
+              className="w-full rounded-full h-14 flex items-center justify-center gap-3 font-bold text-base text-gray-900 disabled:opacity-60 transition-transform active:scale-95"
+              style={{ background: 'linear-gradient(145deg, #e8e8e8, #d0d0d0)', boxShadow: '0 6px 20px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10)' }}
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
