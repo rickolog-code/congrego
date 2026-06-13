@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --font-nunito: 'Playfair Display', serif;
+    --font-nunito: 'Nunito', sans-serif;
     --background: 40 33% 96%;
     --foreground: 150 30% 10%;
     --card: 40 30% 98%;
