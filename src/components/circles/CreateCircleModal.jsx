@@ -78,13 +78,17 @@ export default function CreateCircleModal({ open, onOpenChange }) {
               You've reached the 5 circle limit. Leave a circle to create a new one.
             </p>
           )}
-          <Input
-            placeholder="Circle name..."
-            disabled={atLimit}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="rounded-xl text-base"
-          />
+          <div className="space-y-1">
+            <Input
+              placeholder="Circle name..."
+              disabled={atLimit}
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 15))}
+              maxLength={15}
+              className="rounded-xl text-base"
+            />
+            <p className="text-xs text-muted-foreground text-right">{name.length}/15</p>
+          </div>
 
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">

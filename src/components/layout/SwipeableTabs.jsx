@@ -33,7 +33,14 @@ export default function SwipeableTabs({ tabIndex, onTabChange, children }) {
 
     if (!locked.current) {
       if (Math.abs(dx) > Math.abs(dy) + 5) {
-        locked.current = 'horizontal';
+        // Only lock horizontal if the touch didn't start on a horizontally scrollable element
+        const target = e.touches[0].target;
+        const scrollableParent = target.closest('[data-swipe-ignore]');
+        if (scrollableParent) {
+          locked.current = 'vertical';
+        } else {
+          locked.current = 'horizontal';
+        }
       } else if (Math.abs(dy) > Math.abs(dx) + 5) {
         locked.current = 'vertical';
       }

@@ -10,6 +10,7 @@ const MAX_SCALE = 4;
 export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm }) {
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [naturalSize, setNaturalSize] = useState({ w: SIZE, h: SIZE });
 
   const scaleRef = useRef(1);
   const posRef = useRef({ x: 0, y: 0 });
@@ -23,6 +24,15 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       setPos({ x: 0, y: 0 });
       scaleRef.current = 1;
       posRef.current = { x: 0, y: 0 };
+      const img = new Image();
+      img.onload = () => {
+        const aspect = img.naturalWidth / img.naturalHeight;
+        let baseW, baseH;
+        if (aspect >= 1) { baseH = SIZE; baseW = SIZE * aspect; }
+        else { baseW = SIZE; baseH = SIZE / aspect; }
+        setNaturalSize({ w: baseW, h: baseH });
+      };
+      img.src = imageSrc;
     }
   }, [imageSrc, open]);
 
@@ -142,8 +152,8 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
               draggable={false}
               style={{
                 position: 'absolute',
-                width: SIZE * scale,
-                height: SIZE * scale,
+                width: naturalSize.w * scale,
+                height: naturalSize.h * scale,
                 top: '50%',
                 left: '50%',
                 transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
