@@ -23,7 +23,7 @@ import ColorPickerModal from '@/components/profile/ColorPickerModal';
 import CalendarSyncModal from '@/components/settings/CalendarSyncModal';
 
 export default function Settings() {
-  const { user, activeCircle, activeCircleId, myMembership, refreshCircles, circles, switchCircle } = useCircle();
+  const { user, activeCircle, activeCircleId, myMembership, memberships, refreshCircles, circles, switchCircle } = useCircle();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -55,8 +55,11 @@ export default function Settings() {
   });
 
   const handleUpdateUsername = async () => {
-    if (!newUsername.trim() || !myMembership) return;
-    await base44.entities.CircleMember.update(myMembership.id, { username: newUsername.trim() });
+    if (!newUsername.trim()) return;
+    // Update username across ALL circles
+    await Promise.all(
+      memberships.map(m => base44.entities.CircleMember.update(m.id, { username: newUsername.trim() }))
+    );
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
     setEditingName(false);
@@ -70,8 +73,10 @@ export default function Settings() {
   };
 
   const handleSelectProfileImage = async (url) => {
-    if (!myMembership) return;
-    await base44.entities.CircleMember.update(myMembership.id, { profile_image: url });
+    // Update profile image across ALL circles
+    await Promise.all(
+      memberships.map(m => base44.entities.CircleMember.update(m.id, { profile_image: url }))
+    );
     queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     queryClient.invalidateQueries({ queryKey: ['my-memberships'] });
   };

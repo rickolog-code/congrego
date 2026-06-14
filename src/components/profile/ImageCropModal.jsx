@@ -3,14 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 
-const SIZE = 260;
+const OUTPUT = 260;   // final canvas size
+const STAGE = 340;    // drag area size (larger than circle so you can drag freely)
+const CIRCLE = 240;   // visible circle diameter
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 
 export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm }) {
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [naturalSize, setNaturalSize] = useState({ w: SIZE, h: SIZE });
+  const [naturalSize, setNaturalSize] = useState({ w: CIRCLE, h: CIRCLE });
 
   const scaleRef = useRef(1);
   const posRef = useRef({ x: 0, y: 0 });
@@ -28,17 +30,27 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       img.onload = () => {
         const aspect = img.naturalWidth / img.naturalHeight;
         let baseW, baseH;
-        if (aspect >= 1) { baseH = SIZE; baseW = SIZE * aspect; }
-        else { baseW = SIZE; baseH = SIZE / aspect; }
+        if (aspect >= 1) { baseH = CIRCLE; baseW = CIRCLE * aspect; }
+        else { baseW = CIRCLE; baseH = CIRCLE / aspect; }
         setNaturalSize({ w: baseW, h: baseH });
       };
       img.src = imageSrc;
     }
   }, [imageSrc, open]);
 
+  const clampPos = (x, y, s) => {
+    const w = naturalSize.w * s;
+    const h = naturalSize.h * s;
+    const maxX = w / 2 - CIRCLE / 2;
+    const maxY = h / 2 - CIRCLE / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  };
+
   const onPointerDown = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     isDragging.current = true;
     dragOrigin.current = { x: e.clientX - posRef.current.x, y: e.clientY - posRef.current.y };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -47,15 +59,14 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const onPointerMove = (e) => {
     if (!isDragging.current) return;
     e.preventDefault();
-    const newX = e.clientX - dragOrigin.current.x;
-    const newY = e.clientY - dragOrigin.current.y;
-    posRef.current = { x: newX, y: newY };
-    setPos({ x: newX, y: newY });
+    const rawX = e.clientX - dragOrigin.current.x;
+    const rawY = e.clientY - dragOrigin.current.y;
+    const clamped = clampPos(rawX, rawY, scaleRef.current);
+    posRef.current = clamped;
+    setPos(clamped);
   };
 
-  const onPointerUp = (e) => {
-    isDragging.current = false;
-  };
+  const onPointerUp = () => { isDragging.current = false; };
 
   const onTouchStart = (e) => {
     e.stopPropagation();
@@ -76,7 +87,10 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       const delta = (dist - lastPinchDist.current) / 150;
       const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current + delta));
       scaleRef.current = newScale;
+      const clamped = clampPos(posRef.current.x, posRef.current.y, newScale);
+      posRef.current = clamped;
       setScale(newScale);
+      setPos(clamped);
       lastPinchDist.current = dist;
     }
   };
@@ -88,30 +102,35 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const changeScale = (delta) => {
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current + delta));
     scaleRef.current = newScale;
+    const clamped = clampPos(posRef.current.x, posRef.current.y, newScale);
+    posRef.current = clamped;
     setScale(newScale);
+    setPos(clamped);
   };
 
   const handleConfirm = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = SIZE;
-    canvas.height = SIZE;
+    canvas.width = OUTPUT;
+    canvas.height = OUTPUT;
     const ctx = canvas.getContext('2d');
 
     ctx.beginPath();
-    ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
+    ctx.arc(OUTPUT / 2, OUTPUT / 2, OUTPUT / 2, 0, Math.PI * 2);
     ctx.clip();
 
     const img = new Image();
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight;
       let baseW, baseH;
-      if (aspect >= 1) { baseH = SIZE; baseW = SIZE * aspect; }
-      else { baseW = SIZE; baseH = SIZE / aspect; }
+      if (aspect >= 1) { baseH = CIRCLE; baseW = CIRCLE * aspect; }
+      else { baseW = CIRCLE; baseH = CIRCLE / aspect; }
 
-      const drawW = baseW * scaleRef.current;
-      const drawH = baseH * scaleRef.current;
-      const drawX = (SIZE - drawW) / 2 + posRef.current.x;
-      const drawY = (SIZE - drawH) / 2 + posRef.current.y;
+      // Scale the base sizes to OUTPUT resolution
+      const ratio = OUTPUT / CIRCLE;
+      const drawW = baseW * scaleRef.current * ratio;
+      const drawH = baseH * scaleRef.current * ratio;
+      const drawX = (OUTPUT - drawW) / 2 + posRef.current.x * ratio;
+      const drawY = (OUTPUT - drawH) / 2 + posRef.current.y * ratio;
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
       canvas.toBlob((blob) => {
@@ -132,12 +151,12 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xs text-muted-foreground text-center">Drag or pinch to adjust</p>
+          <p className="text-xs text-muted-foreground text-center">Drag to reposition · pinch or use buttons to zoom</p>
 
-          {/* Crop circle — overflow-hidden clips the preview only, not the drag */}
+          {/* Outer drag zone — larger than the visible circle so dragging near edges works */}
           <div
-            className="relative overflow-hidden rounded-full border-4 border-primary shadow-lg select-none touch-none"
-            style={{ width: SIZE, height: SIZE, flexShrink: 0, cursor: isDragging.current ? 'grabbing' : 'grab' }}
+            className="relative select-none touch-none"
+            style={{ width: STAGE, height: STAGE, cursor: isDragging.current ? 'grabbing' : 'grab' }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -146,6 +165,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
+            {/* The image — free to move anywhere within the stage */}
             <img
               src={imageSrc}
               alt="crop preview"
@@ -162,6 +182,24 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
                 pointerEvents: 'none',
               }}
             />
+
+            {/* Overlay: dims everything outside the circle */}
+            <svg
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+              width={STAGE}
+              height={STAGE}
+            >
+              <defs>
+                <mask id="hole">
+                  <rect width={STAGE} height={STAGE} fill="white" />
+                  <circle cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2} fill="black" />
+                </mask>
+              </defs>
+              {/* Dark scrim outside circle */}
+              <rect width={STAGE} height={STAGE} fill="rgba(0,0,0,0.55)" mask="url(#hole)" />
+              {/* Circle border */}
+              <circle cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" />
+            </svg>
           </div>
 
           {/* Zoom controls */}
