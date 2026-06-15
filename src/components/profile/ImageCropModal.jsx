@@ -6,8 +6,9 @@ import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 const OUTPUT    = 260;   // exported image size (px)
 const STAGE     = 340;   // pointer-capture zone — larger than circle for comfortable dragging
 const CIRCLE    = 240;   // visible crop circle diameter
-const MIN_SCALE = 0.4;   // allow zooming out to see the full image
+const MIN_SCALE = 0.4;
 const MAX_SCALE = 4;
+const RING_COLOR = '#1D9E75';
 
 export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm }) {
   const [scale,       setScale]       = useState(1);
@@ -20,13 +21,13 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const dragOrigin    = useRef({ x: 0, y: 0 });
   const lastPinchDist = useRef(null);
 
-  // ── Reset on open ────────────────────────────────────────────────────────────
+  // ── Reset on open ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!imageSrc || !open) return;
     const img = new Image();
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight;
-      // Fit the short edge to CIRCLE so the image starts filling the circle
+      // Fit the short edge to CIRCLE so the image fills the circle by default
       const baseW = aspect >= 1 ? CIRCLE * aspect : CIRCLE;
       const baseH = aspect >= 1 ? CIRCLE           : CIRCLE / aspect;
       setNaturalSize({ w: baseW, h: baseH });
@@ -38,7 +39,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     img.src = imageSrc;
   }, [imageSrc, open]);
 
-  // ── Pointer drag (works with setPointerCapture — finger can leave stage) ────
+  // ── Pointer drag ──────────────────────────────────────────────────────────
   const onPointerDown = (e) => {
     e.preventDefault();
     isDragging.current = true;
@@ -46,13 +47,14 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       x: e.clientX - posRef.current.x,
       y: e.clientY - posRef.current.y,
     };
+    // setPointerCapture lets the drag keep working even when the finger
+    // moves outside the stage element entirely
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e) => {
     if (!isDragging.current) return;
     e.preventDefault();
-    // No clamping — pan anywhere
     const next = { x: e.clientX - dragOrigin.current.x, y: e.clientY - dragOrigin.current.y };
     posRef.current = next;
     setPos(next);
@@ -60,7 +62,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
 
   const onPointerUp = () => { isDragging.current = false; };
 
-  // ── Pinch zoom ───────────────────────────────────────────────────────────────
+  // ── Pinch zoom ────────────────────────────────────────────────────────────
   const onTouchStart = (e) => {
     e.stopPropagation();
     if (e.touches.length === 2) {
@@ -89,14 +91,14 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     if (e.touches.length < 2) lastPinchDist.current = null;
   };
 
-  // ── Button zoom ──────────────────────────────────────────────────────────────
+  // ── Button zoom ───────────────────────────────────────────────────────────
   const changeScale = (delta) => {
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current + delta));
     scaleRef.current = newScale;
     setScale(newScale);
   };
 
-  // ── Export ───────────────────────────────────────────────────────────────────
+  // ── Export ────────────────────────────────────────────────────────────────
   const handleConfirm = () => {
     const canvas = document.createElement('canvas');
     canvas.width  = OUTPUT;
@@ -113,7 +115,6 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
       const baseW  = aspect >= 1 ? CIRCLE * aspect : CIRCLE;
       const baseH  = aspect >= 1 ? CIRCLE           : CIRCLE / aspect;
 
-      // Scale from CIRCLE-space to OUTPUT-space
       const ratio = OUTPUT / CIRCLE;
       const drawW = baseW * scaleRef.current * ratio;
       const drawH = baseH * scaleRef.current * ratio;
@@ -131,8 +132,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
 
   if (!imageSrc) return null;
 
-  // How far the circle sits from the stage edge
-  const offset = (STAGE - CIRCLE) / 2; // 50 px
+  const offset = (STAGE - CIRCLE) / 2; // gap between stage edge and circle edge (50px)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -146,11 +146,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
             Drag to reposition · pinch or use buttons to zoom
           </p>
 
-          {/*
-           * STAGE — transparent, no overflow-clip.
-           * setPointerCapture means the drag keeps working even if the finger
-           * slides outside this box, so the user can pan as far as they like.
-           */}
+          {/* STAGE — transparent, no overflow clip, captures pointer events */}
           <div
             className="relative select-none touch-none"
             style={{
@@ -168,9 +164,14 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
           >
             {/*
              * CIRCULAR VIEWPORT
-             * border-radius:50% + overflow:hidden clips the image to a perfect
-             * circle. Nothing renders outside this div, so the white modal
-             * background shows through — no dark scrim needed.
+             * border-radius:50% + overflow:hidden clips the image to a circle.
+             * The white modal background shows outside — no grey box, no scrim.
+             *
+             * The img inside has maxWidth/maxHeight set to 'none' to prevent
+             * Tailwind's CSS preflight rule "img { max-width: 100% }" from
+             * capping the image width at the div's 240px. Without this fix,
+             * the width stays at 240px while the height grows with scale,
+             * causing the stretched/elongated appearance.
              */}
             <div
               style={{
@@ -192,6 +193,8 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
                   position:     'absolute',
                   width:        naturalSize.w * scale,
                   height:       naturalSize.h * scale,
+                  maxWidth:     'none',   // ← critical: overrides Tailwind's max-width:100%
+                  maxHeight:    'none',   // ← safety net
                   top:          '50%',
                   left:         '50%',
                   transform:    `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
@@ -201,11 +204,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
               />
             </div>
 
-            {/*
-             * NEON GLOW RING
-             * Three layers: blurred outer halo → semi-transparent mid ring → crisp edge.
-             * overflow:visible so the glow isn't clipped by the stage box.
-             */}
+            {/* GLOW RING — three layers for a neon effect */}
             <svg
               style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}
               width={STAGE}
@@ -221,29 +220,29 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
               <circle
                 cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
                 fill="none"
-                stroke="#4ade80"
-                strokeWidth="24"
-                opacity="0.28"
+                stroke={RING_COLOR}
+                strokeWidth="26"
+                opacity="0.25"
                 filter="url(#icm-glow)"
               />
 
-              {/* Mid glow ring */}
+              {/* Mid glow */}
               <circle
                 cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
                 fill="none"
-                stroke="#4ade80"
+                stroke={RING_COLOR}
                 strokeWidth="12"
                 opacity="0.45"
                 filter="url(#icm-glow)"
               />
 
-              {/* Crisp bright edge ring */}
+              {/* Crisp edge ring */}
               <circle
                 cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
                 fill="none"
-                stroke="#4ade80"
+                stroke={RING_COLOR}
                 strokeWidth="2.5"
-                opacity="0.95"
+                opacity="1"
               />
             </svg>
           </div>
