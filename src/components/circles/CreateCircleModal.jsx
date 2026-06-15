@@ -40,11 +40,12 @@ export default function CreateCircleModal({ open, onOpenChange }) {
         member_count: 1,
       });
 
+      const freshUser = await base44.auth.me();
       await base44.entities.CircleMember.create({
         circle_id: circle.id,
-        user_email: user.email,
-        username: user.full_name || user.email.split('@')[0],
-        profile_image: '',
+        user_email: freshUser.email,
+        username: freshUser.username || freshUser.full_name || freshUser.email.split('@')[0],
+        profile_image: freshUser.profile_image || '',
         role: 'host',
         availability: 'unset',
         theme_color: randomThemeColor(),

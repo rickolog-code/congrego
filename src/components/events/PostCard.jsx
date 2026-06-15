@@ -101,7 +101,7 @@ export default function PostCard({ post }) {
 
           // Remove this circle from the kicked user's circle_ids so RLS stops leaking data to them.
           // We do this via a backend function call so we can act with service-role on another user's data.
-          base44.functions.invoke('removeUserFromCircle', {
+          await base44.functions.invoke('removeUserFromCircle', {
             userEmail: post.vote_target_email,
             circleId: activeCircleId,
           }).catch(() => {});
@@ -110,6 +110,7 @@ export default function PostCard({ post }) {
         await base44.entities.Post.delete(post.id);
         queryClient.invalidateQueries({ queryKey: ['circle-members'] });
         queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       } else if (noWeight > totalWeight / 2) {
         // No-votes won — delete the post
         await base44.entities.Post.delete(post.id);
