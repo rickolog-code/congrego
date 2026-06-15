@@ -3,35 +3,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 
-const OUTPUT  = 260;   // final exported canvas size (px)
-const STAGE   = 300;   // dark drag-zone size
-const CIRCLE  = 240;   // visible circle diameter
-const MIN_SCALE = 0.4; // allow zooming out to see the whole image
+const OUTPUT    = 260;   // exported image size (px)
+const STAGE     = 340;   // pointer-capture zone — larger than circle for comfortable dragging
+const CIRCLE    = 240;   // visible crop circle diameter
+const MIN_SCALE = 0.4;   // allow zooming out to see the full image
 const MAX_SCALE = 4;
 
 export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm }) {
-  const [scale, setScale]           = useState(1);
-  const [pos,   setPos]             = useState({ x: 0, y: 0 });
+  const [scale,       setScale]       = useState(1);
+  const [pos,         setPos]         = useState({ x: 0, y: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: CIRCLE, h: CIRCLE });
 
-  // Keep refs in sync for handlers that close over stale state
-  const scaleRef       = useRef(1);
-  const posRef         = useRef({ x: 0, y: 0 });
-  const naturalSizeRef = useRef({ w: CIRCLE, h: CIRCLE });
-  const isDragging     = useRef(false);
-  const dragOrigin     = useRef({ x: 0, y: 0 });
-  const lastPinchDist  = useRef(null);
+  const scaleRef      = useRef(1);
+  const posRef        = useRef({ x: 0, y: 0 });
+  const isDragging    = useRef(false);
+  const dragOrigin    = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef(null);
 
-  // ── Reset whenever a new image is opened ────────────────────────────────────
+  // ── Reset on open ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!imageSrc || !open) return;
     const img = new Image();
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight;
-      // Fit the short side to CIRCLE so the image fills the circle by default
+      // Fit the short edge to CIRCLE so the image starts filling the circle
       const baseW = aspect >= 1 ? CIRCLE * aspect : CIRCLE;
-      const baseH = aspect >= 1 ? CIRCLE          : CIRCLE / aspect;
-      naturalSizeRef.current = { w: baseW, h: baseH };
+      const baseH = aspect >= 1 ? CIRCLE           : CIRCLE / aspect;
       setNaturalSize({ w: baseW, h: baseH });
       scaleRef.current = 1;
       posRef.current   = { x: 0, y: 0 };
@@ -41,7 +38,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     img.src = imageSrc;
   }, [imageSrc, open]);
 
-  // ── Pointer drag (mouse + single touch via pointer-capture) ─────────────────
+  // ── Pointer drag (works with setPointerCapture — finger can leave stage) ────
   const onPointerDown = (e) => {
     e.preventDefault();
     isDragging.current = true;
@@ -55,7 +52,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
   const onPointerMove = (e) => {
     if (!isDragging.current) return;
     e.preventDefault();
-    // No clamping — let the user pan anywhere they like
+    // No clamping — pan anywhere
     const next = { x: e.clientX - dragOrigin.current.x, y: e.clientY - dragOrigin.current.y };
     posRef.current = next;
     setPos(next);
@@ -63,7 +60,7 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
 
   const onPointerUp = () => { isDragging.current = false; };
 
-  // ── Two-finger pinch zoom ────────────────────────────────────────────────────
+  // ── Pinch zoom ───────────────────────────────────────────────────────────────
   const onTouchStart = (e) => {
     e.stopPropagation();
     if (e.touches.length === 2) {
@@ -106,7 +103,6 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     canvas.height = OUTPUT;
     const ctx = canvas.getContext('2d');
 
-    // Clip to circle
     ctx.beginPath();
     ctx.arc(OUTPUT / 2, OUTPUT / 2, OUTPUT / 2, 0, Math.PI * 2);
     ctx.clip();
@@ -115,8 +111,9 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight;
       const baseW  = aspect >= 1 ? CIRCLE * aspect : CIRCLE;
-      const baseH  = aspect >= 1 ? CIRCLE          : CIRCLE / aspect;
+      const baseH  = aspect >= 1 ? CIRCLE           : CIRCLE / aspect;
 
+      // Scale from CIRCLE-space to OUTPUT-space
       const ratio = OUTPUT / CIRCLE;
       const drawW = baseW * scaleRef.current * ratio;
       const drawH = baseH * scaleRef.current * ratio;
@@ -134,6 +131,9 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
 
   if (!imageSrc) return null;
 
+  // How far the circle sits from the stage edge
+  const offset = (STAGE - CIRCLE) / 2; // 50 px
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl max-w-sm mx-auto bg-white">
@@ -147,18 +147,16 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
           </p>
 
           {/*
-           * Stage — dark background so the image floats cleanly.
-           * overflow:hidden clips the image to the square; the SVG overlay
-           * then darkens everything outside the circle.
+           * STAGE — transparent, no overflow-clip.
+           * setPointerCapture means the drag keeps working even if the finger
+           * slides outside this box, so the user can pan as far as they like.
            */}
           <div
-            className="relative select-none touch-none rounded-2xl"
+            className="relative select-none touch-none"
             style={{
-              width:    STAGE,
-              height:   STAGE,
-              background: '#111',
-              overflow: 'hidden',
-              cursor:   isDragging.current ? 'grabbing' : 'grab',
+              width:  STAGE,
+              height: STAGE,
+              cursor: isDragging.current ? 'grabbing' : 'grab',
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -168,70 +166,84 @@ export default function ImageCropModal({ open, onOpenChange, imageSrc, onConfirm
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            {/* The photo — free to move anywhere */}
-            <img
-              src={imageSrc}
-              alt="crop preview"
-              draggable={false}
+            {/*
+             * CIRCULAR VIEWPORT
+             * border-radius:50% + overflow:hidden clips the image to a perfect
+             * circle. Nothing renders outside this div, so the white modal
+             * background shows through — no dark scrim needed.
+             */}
+            <div
               style={{
                 position:     'absolute',
-                width:        naturalSize.w * scale,
-                height:       naturalSize.h * scale,
-                top:          '50%',
-                left:         '50%',
-                transform:    `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
-                objectFit:    'cover',
-                userSelect:   'none',
+                top:          offset,
+                left:         offset,
+                width:        CIRCLE,
+                height:       CIRCLE,
+                borderRadius: '50%',
+                overflow:     'hidden',
                 pointerEvents:'none',
               }}
-            />
+            >
+              <img
+                src={imageSrc}
+                alt="crop preview"
+                draggable={false}
+                style={{
+                  position:     'absolute',
+                  width:        naturalSize.w * scale,
+                  height:       naturalSize.h * scale,
+                  top:          '50%',
+                  left:         '50%',
+                  transform:    `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
+                  userSelect:   'none',
+                  pointerEvents:'none',
+                }}
+              />
+            </div>
 
-            {/* SVG overlay: dark scrim outside circle + glowing ring */}
+            {/*
+             * NEON GLOW RING
+             * Three layers: blurred outer halo → semi-transparent mid ring → crisp edge.
+             * overflow:visible so the glow isn't clipped by the stage box.
+             */}
             <svg
-              style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}
               width={STAGE}
               height={STAGE}
             >
               <defs>
-                {/* Punch a hole where the circle is */}
-                <mask id="icm-hole">
-                  <rect width={STAGE} height={STAGE} fill="white" />
-                  <circle cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2} fill="black" />
-                </mask>
-
-                {/* Glow filter for the ring */}
-                <filter id="icm-glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
+                <filter id="icm-glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur" />
                 </filter>
               </defs>
 
-              {/* Dark scrim outside the circle */}
-              <rect
-                width={STAGE} height={STAGE}
-                fill="rgba(0,0,0,0.65)"
-                mask="url(#icm-hole)"
-              />
-
-              {/* Outer soft glow ring */}
+              {/* Outer diffuse halo */}
               <circle
                 cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
                 fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="14"
-                strokeOpacity="0.3"
+                stroke="#4ade80"
+                strokeWidth="24"
+                opacity="0.28"
                 filter="url(#icm-glow)"
               />
 
-              {/* Crisp inner ring */}
+              {/* Mid glow ring */}
               <circle
                 cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
                 fill="none"
-                stroke="hsl(var(--primary))"
+                stroke="#4ade80"
+                strokeWidth="12"
+                opacity="0.45"
+                filter="url(#icm-glow)"
+              />
+
+              {/* Crisp bright edge ring */}
+              <circle
+                cx={STAGE / 2} cy={STAGE / 2} r={CIRCLE / 2}
+                fill="none"
+                stroke="#4ade80"
                 strokeWidth="2.5"
+                opacity="0.95"
               />
             </svg>
           </div>
