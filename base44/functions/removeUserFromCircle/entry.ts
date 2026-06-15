@@ -31,7 +31,14 @@ Deno.serve(async (req) => {
       hosted_circle_ids: updatedHostedIds,
     });
 
-    return Response.json({ ok: true });
+    // Delete all calendar events the kicked user created in this circle
+    const eventsToDelete = await base44.asServiceRole.entities.CalendarEvent.filter({
+      circle_id: circleId,
+      creator_email: userEmail,
+    });
+    await Promise.all(eventsToDelete.map(ev => base44.asServiceRole.entities.CalendarEvent.delete(ev.id)));
+
+    return Response.json({ ok: true, eventsDeleted: eventsToDelete.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

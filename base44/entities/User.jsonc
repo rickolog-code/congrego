@@ -23,6 +23,14 @@
         "type": "string"
       },
       "description": "Circle IDs where the user is the host"
+    },
+    "username": {
+      "type": "string",
+      "description": "Global display name across all circles"
+    },
+    "profile_image": {
+      "type": "string",
+      "description": "Global profile image URL across all circles"
     }
   },
   "required": [

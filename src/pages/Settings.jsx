@@ -56,7 +56,8 @@ export default function Settings() {
 
   const handleUpdateUsername = async () => {
     if (!newUsername.trim()) return;
-    // Update username across ALL circles
+    // Store on User entity (global) and sync to all circle memberships
+    await base44.auth.updateMe({ username: newUsername.trim() });
     await Promise.all(
       memberships.map(m => base44.entities.CircleMember.update(m.id, { username: newUsername.trim() }))
     );
@@ -73,7 +74,8 @@ export default function Settings() {
   };
 
   const handleSelectProfileImage = async (url) => {
-    // Update profile image across ALL circles
+    // Store on User entity (global) and sync to all circle memberships
+    await base44.auth.updateMe({ profile_image: url });
     await Promise.all(
       memberships.map(m => base44.entities.CircleMember.update(m.id, { profile_image: url }))
     );
@@ -579,6 +581,9 @@ export default function Settings() {
         onOpenChange={setShowColorPicker}
         currentColor={myMembership?.theme_color}
         onSelect={handleSelectColor}
+        takenColors={members
+          .filter(m => m.user_email !== user?.email && m.theme_color)
+          .map(m => m.theme_color)}
       />
     </div>
   );

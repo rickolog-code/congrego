@@ -330,7 +330,8 @@ function parseVEvents(ics, windowStart, windowEnd) {
 
     if (!dtProp || !uid) continue;
 
-    const { eventDate, eventTime, dtStartMs } = parseDtstart(dtProp);
+    const dtEndProp = getPropWithParams(vevent, 'DTEND');
+    const { eventDate, eventTime, dtStartMs } = parseDtstart(dtProp, dtEndProp);
     if (!eventDate || dtStartMs === null) continue;
 
     if (!rrule) {
@@ -344,7 +345,7 @@ function parseVEvents(ics, windowStart, windowEnd) {
     }
 
     // Recurring event — expand within window
-    const occurrences = expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd);
+    const occurrences = expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent);
     for (let i = 0; i < occurrences.length; i++) {
       const occ = occurrences[i];
       // Use uid__N for each occurrence so each gets its own stable key
@@ -366,7 +367,16 @@ function parseVEvents(ics, windowStart, windowEnd) {
  * Expand a simple RRULE into occurrences within [windowStart, windowEnd].
  * Supports FREQ=DAILY|WEEKLY|MONTHLY|YEARLY with optional INTERVAL, COUNT, UNTIL, BYDAY.
  */
-function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd) {
+function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent) {
+  // Try to compute duration from DTSTART/DTEND to append end time on recurrences
+  if (vevent) {
+    const dtEndProp = getPropWithParams(vevent, 'DTEND');
+    const dtStartProp = getPropWithParams(vevent, 'DTSTART');
+    if (dtEndProp && dtStartProp) {
+      const { eventTime: startTime } = parseDtstart(dtStartProp, dtEndProp);
+      if (startTime) eventTime = startTime;
+    }
+  }
   const params = {};
   rrule.split(';').forEach(part => {
     const [k, v] = part.split('=');
@@ -463,7 +473,14 @@ function getPropWithParams(vevent, name) {
   return { value, tzid, isUtc };
 }
 
-function parseDtstart(dtProp) {
+function formatTime12(hh, mm) {
+  const hour = parseInt(hh, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+}
+
+function parseDtstart(dtProp, dtEndProp) {
   const raw = typeof dtProp === 'string' ? dtProp : dtProp.value;
   const isUtc = typeof dtProp === 'object' ? dtProp.isUtc : raw.endsWith('Z');
 
@@ -478,27 +495,44 @@ function parseDtstart(dtProp) {
 
   const [, yr, mo, dy, hh, mm] = dtMatch;
 
+  // Parse end time if available
+  let endTimeStr = null;
+  if (dtEndProp) {
+    const endRaw = typeof dtEndProp === 'string' ? dtEndProp : dtEndProp.value;
+    const endMatch = endRaw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
+    if (endMatch) {
+      const [, eyr, emo, edy, ehh, emm] = endMatch;
+      if (isUtc || (typeof dtEndProp === 'object' && dtEndProp.isUtc)) {
+        const endMs = new Date(`${eyr}-${emo}-${edy}T${ehh}:${emm}:00Z`).getTime();
+        const endD = new Date(endMs);
+        endTimeStr = formatTime12(endD.getUTCHours(), endD.getUTCMinutes());
+      } else {
+        endTimeStr = formatTime12(ehh, emm);
+      }
+    }
+  }
+
+  const buildTimeRange = (startStr) => {
+    if (!endTimeStr || endTimeStr === startStr) return startStr;
+    return `${startStr} – ${endTimeStr}`;
+  };
+
   if (isUtc) {
     const dtStartMs = new Date(`${yr}-${mo}-${dy}T${hh}:${mm}:00Z`).getTime();
     const d = new Date(dtStartMs);
-    const localHr = d.getUTCHours();
-    const localMin = String(d.getUTCMinutes()).padStart(2, '0');
-    const ampm = localHr >= 12 ? 'PM' : 'AM';
-    const h12 = localHr % 12 || 12;
+    const startStr = formatTime12(d.getUTCHours(), d.getUTCMinutes());
     return {
       eventDate: formatDate(d),
-      eventTime: `${h12}:${localMin} ${ampm}`,
+      eventTime: buildTimeRange(startStr),
       dtStartMs,
     };
   }
 
   // Floating / TZID — treat wall-clock date literally
-  const hour = parseInt(hh, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const h12 = hour % 12 || 12;
+  const startStr = formatTime12(hh, mm);
   return {
     eventDate: `${yr}-${mo}-${dy}`,
-    eventTime: `${h12}:${mm} ${ampm}`,
+    eventTime: buildTimeRange(startStr),
     dtStartMs: new Date(`${yr}-${mo}-${dy}T${hh}:${mm}:00Z`).getTime(),
   };
 }

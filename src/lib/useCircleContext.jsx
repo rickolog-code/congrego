@@ -13,6 +13,19 @@ export function CircleProvider({ children }) {
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
+    // Sync stored username/profile_image to any circles that don't have them yet
+    base44.auth.me().then(async (u) => {
+      if (!u?.username && !u?.profile_image) return;
+      const myMemberships = await base44.entities.CircleMember.filter({ user_email: u.email });
+      const updates = myMemberships.filter(m =>
+        (u.username && m.username !== u.username) ||
+        (u.profile_image && m.profile_image !== u.profile_image)
+      );
+      await Promise.all(updates.map(m => base44.entities.CircleMember.update(m.id, {
+        ...(u.username ? { username: u.username } : {}),
+        ...(u.profile_image ? { profile_image: u.profile_image } : {}),
+      })));
+    }).catch(() => {});
   }, []);
 
   const { data: memberships = [], isLoading: membershipsLoading, isFetching: membershipsFetching } = useQuery({
