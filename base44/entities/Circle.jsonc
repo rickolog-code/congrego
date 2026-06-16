@@ -42,6 +42,21 @@
     "host_email"
   ],
   "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "id": {
+            "$in": "{{user.data.circle_ids}}"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "update": {
       "$or": [
         {
