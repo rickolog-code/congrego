@@ -155,7 +155,7 @@ export default function Settings() {
     }
 
     await base44.entities.CircleMember.delete(myMembership.id);
-    if (activeCircle) {
+    if (activeCircle && isHost) {
       await base44.entities.Circle.update(activeCircle.id, {
         member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
       });
