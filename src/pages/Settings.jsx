@@ -45,6 +45,8 @@ export default function Settings() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(myMembership?.privacy_mode || false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showManageCalendars, setShowManageCalendars] = useState(false);
 
@@ -114,6 +116,25 @@ export default function Settings() {
       navigator.clipboard.writeText(activeCircle.invite_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleDeleteCircle = async () => {
+    if (!activeCircleId) return;
+    setDeleting(true);
+    try {
+      await base44.functions.invoke('deleteCircleWithData', { circleId: activeCircleId });
+      const nextCircle = circles.find(c => c.id !== activeCircleId);
+      switchCircle(nextCircle ? nextCircle.id : null);
+      refreshCircles();
+      queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+      queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      navigate('/');
+    } catch {
+      toast({ description: 'Failed to delete circle.' });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -472,9 +493,14 @@ export default function Settings() {
         <Button variant="outline" className="w-full rounded-xl justify-start gap-2" onClick={() => setShowJoin(true)}>
           <UserPlus className="w-4 h-4" /> Join Circle
         </Button>
-        {activeCircle && (
+        {activeCircle && !isHost && (
           <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowLeaveConfirm(true)}>
             <Trash2 className="w-4 h-4" /> Leave Circle
+          </Button>
+        )}
+        {activeCircle && isHost && (
+          <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteConfirm(true)} disabled={deleting}>
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Circle & All Data
           </Button>
         )}
         <Separator />
@@ -557,6 +583,21 @@ export default function Settings() {
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={handleLeaveCircle}>Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="rounded-3xl max-w-sm mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Circle?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the circle, all posts, comments, calendar events, and member data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90" onClick={handleDeleteCircle}>Delete Everything</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
