@@ -52,6 +52,11 @@ export default function JoinCircleModal({ open, onOpenChange }) {
     }
 
     const freshUser = await base44.auth.me();
+
+    // Get existing member colors to avoid duplicates
+    const existingMembers = await base44.entities.CircleMember.filter({ circle_id: circle.id });
+    const takenColors = existingMembers.map(m => m.theme_color).filter(Boolean);
+
     await base44.entities.CircleMember.create({
       circle_id: circle.id,
       user_email: freshUser.email,
@@ -59,7 +64,7 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       profile_image: freshUser.profile_image || '',
       role: 'member',
       availability: 'unset',
-      theme_color: randomThemeColor(),
+      theme_color: randomThemeColor(takenColors),
     });
 
     await base44.entities.Circle.update(circle.id, {

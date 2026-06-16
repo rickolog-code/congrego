@@ -498,7 +498,7 @@ export default function Settings() {
             <Trash2 className="w-4 h-4" /> Leave Circle
           </Button>
         )}
-        {activeCircle && isHost && (
+        {activeCircle && isHost && members.length === 1 && (
           <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteConfirm(true)} disabled={deleting}>
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Circle & All Data
           </Button>
