@@ -12,8 +12,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch the post with service role
-    const posts = await base44.asServiceRole.entities.Post.filter({ id: postId });
-    const post = posts?.[0];
+    const post = await base44.asServiceRole.entities.Post.get(postId);
     if (!post) return Response.json({ error: 'Post not found' }, { status: 404 });
 
     // Verify the user is a member of the post's circle
@@ -57,9 +56,8 @@ Deno.serve(async (req) => {
         const targetMember = members.find(m => m.user_email === post.vote_target_email);
         if (targetMember) {
           await base44.asServiceRole.entities.CircleMember.delete(targetMember.id);
-          const circles = await base44.asServiceRole.entities.Circle.filter({ id: post.circle_id });
-          const circle = circles?.[0];
-          if (circle) {
+          const circle = await base44.asServiceRole.entities.Circle.get(post.circle_id);
+          if (circle?.id) {
             await base44.asServiceRole.entities.Circle.update(post.circle_id, {
               member_count: Math.max(0, (circle.member_count || 1) - 1),
             });
