@@ -2,33 +2,57 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * Syncs Apple Calendar events via CalDAV.
- * Credentials are stored on CircleMember so re-syncs work without re-entering them.
- * Recurring events: fetches all events (no time-range filter) to capture RRULE masters,
- * then expands recurrences into individual occurrences within the next 60 days.
+ * - Called with appleId/appPassword in body: syncs for that specific user
+ * - Called without credentials (scheduled automation): syncs all users with stored Apple credentials
  */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
+    const { appleId: bodyAppleId, appPassword: bodyAppPassword } = body;
+
+    // Scheduled call — sync ALL users who have stored Apple credentials
+    if (!bodyAppleId || !bodyAppPassword) {
+      const allMembers = await base44.asServiceRole.entities.CircleMember.filter({
+        calendar_provider: 'apple',
+        calendar_synced: true,
+      });
+      const uniqueEmails = [...new Set(allMembers.filter(m => m.apple_id && m.apple_app_password).map(m => m.user_email))];
+
+      if (uniqueEmails.length === 0) {
+        return Response.json({ message: 'No users with stored Apple credentials to sync.' });
+      }
+
+      let totalNew = 0, totalUpdated = 0;
+      for (const email of uniqueEmails) {
+        const member = allMembers.find(m => m.user_email === email);
+        try {
+          const res = await base44.functions.invoke('syncAppleCalendar', {
+            appleId: member.apple_id,
+            appPassword: member.apple_app_password,
+          });
+          if (res?.data?.newEvents) totalNew += res.data.newEvents;
+          if (res?.data?.updatedEvents) totalUpdated += res.data.updatedEvents;
+        } catch (e) {
+          console.error(`Failed to sync Apple calendar for ${email}:`, e.message);
+        }
+      }
+      return Response.json({
+        message: 'Scheduled Apple sync complete',
+        usersProcessed: uniqueEmails.length,
+        newEvents: totalNew,
+        updatedEvents: totalUpdated,
+      });
+    }
+
+    // Direct call — sync for a specific user (must be authenticated)
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    let { appleId, appPassword } = body;
+    let appleId = bodyAppleId;
+    let appPassword = bodyAppPassword;
 
-    // Scheduled call (no JWT) — sync ALL users who have stored Apple credentials
-    if (!user) {
-      const allMembers = await base44.asServiceRole.entities.CircleMember.filter({ calendar_provider: 'apple', calendar_synced: true });
-      const uniqueEmails = [...new Set(allMembers.filter(m => m.apple_id && m.apple_app_password).map(m => m.user_email))];
-      let totalNew = 0, totalUpdated = 0;
-      for (const email of uniqueEmails) {
-        const res = await base44.functions.invoke('syncAppleCalendar', { appleId: allMembers.find(m => m.user_email === email).apple_id, appPassword: allMembers.find(m => m.user_email === email).apple_app_password });
-        if (res?.data?.newEvents) totalNew += res.data.newEvents;
-        if (res?.data?.updatedEvents) totalUpdated += res.data.updatedEvents;
-      }
-      return Response.json({ message: 'Scheduled Apple sync complete', usersProcessed: uniqueEmails.length, newEvents: totalNew, updatedEvents: totalUpdated });
-    }
-
-    // If called without credentials (re-sync on app open), load stored credentials
+    // If credentials weren't passed directly, try stored credentials
     if (!appleId || !appPassword) {
       const memberships = await base44.asServiceRole.entities.CircleMember.filter({ user_email: user.email });
       const member = memberships?.find(m => m.apple_id && m.apple_app_password);
@@ -145,19 +169,16 @@ Deno.serve(async (req) => {
     if (Array.isArray(approvedUrls) && approvedUrls.length > 0) {
       filteredCalendarUrls = calendarUrls.filter(url => approvedUrls.includes(url));
     } else if (Array.isArray(approvedUrls) && approvedUrls.length === 0) {
-      // User saved empty prefs — sync nothing
       return Response.json({ message: 'No approved calendars selected. Go to Settings → Manage Synced Calendars to choose calendars to sync.', newEvents: 0, updatedEvents: 0 });
     } else {
-      // No prefs saved yet — sync nothing, prompt user
       return Response.json({ message: 'No calendar preferences saved. Go to Settings → Manage Synced Calendars to choose calendars to sync.', newEvents: 0, updatedEvents: 0 });
     }
 
     // Step 4: Fetch ALL events (no time-range filter so recurring masters are included)
-    // Then expand them into occurrences within the next 60 days.
     const now = new Date();
     const windowEnd = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000);
 
-    const allEvents = []; // { uid, summary, eventDate, eventTime, description, location }
+    const allEvents = [];
 
     for (const calUrl of filteredCalendarUrls) {
       const reportRes = await caldavRequest(calUrl, 'REPORT', 1,
@@ -195,8 +216,8 @@ Deno.serve(async (req) => {
     const incomingUids = new Set(allEvents.map(ev => ev.uid));
 
     for (const membership of memberships) {
-      // Store credentials on first real sync (when appleId/appPassword were passed in body)
-      if (body.appleId && body.appPassword) {
+      // Store credentials on first real sync
+      if (bodyAppleId && bodyAppPassword) {
         await base44.asServiceRole.entities.CircleMember.update(membership.id, {
           calendar_synced: true,
           calendar_provider: 'apple',
@@ -205,8 +226,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delete any previously synced apple events whose UID is no longer in the window
-      // (handles deleted or rescheduled events)
+      // Delete stale events no longer in the window
       const existingApple = await base44.asServiceRole.entities.CalendarEvent.filter({
         circle_id: membership.circle_id,
         creator_email: user.email,
@@ -226,7 +246,6 @@ Deno.serve(async (req) => {
         });
 
         if (existing && existing.length > 0) {
-          // Delete any extra duplicates
           for (let i = 1; i < existing.length; i++) {
             await base44.asServiceRole.entities.CalendarEvent.delete(existing[i].id);
           }
@@ -323,15 +342,10 @@ function extractIcsBlocks(xml) {
   return blocks;
 }
 
-/**
- * Parse one ICS block and return all occurrences within [windowStart, windowEnd].
- * Handles single events and simple RRULE (DAILY, WEEKLY, MONTHLY, YEARLY) recurrences.
- */
 function parseVEvents(ics, windowStart, windowEnd) {
   const unfolded = ics.replace(/\r?\n[ \t]/g, '');
   const results = [];
 
-  // Find all VEVENT blocks (an ICS may have multiple)
   const veventRe = /BEGIN:VEVENT([\s\S]*?)END:VEVENT/g;
   let vm;
   while ((vm = veventRe.exec(unfolded)) !== null) {
@@ -351,7 +365,6 @@ function parseVEvents(ics, windowStart, windowEnd) {
     if (!eventDate || dtStartMs === null) continue;
 
     if (!rrule) {
-      // Single event — include if within window
       const evDate = new Date(eventDate + 'T00:00:00');
       if (evDate >= new Date(windowStart.getFullYear(), windowStart.getMonth(), windowStart.getDate()) &&
           evDate <= windowEnd) {
@@ -360,11 +373,9 @@ function parseVEvents(ics, windowStart, windowEnd) {
       continue;
     }
 
-    // Recurring event — expand within window
     const occurrences = expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent);
     for (let i = 0; i < occurrences.length; i++) {
       const occ = occurrences[i];
-      // Use uid__N for each occurrence so each gets its own stable key
       results.push({
         uid: i === 0 ? uid : `${uid}__${i}`,
         summary,
@@ -379,12 +390,7 @@ function parseVEvents(ics, windowStart, windowEnd) {
   return results;
 }
 
-/**
- * Expand a simple RRULE into occurrences within [windowStart, windowEnd].
- * Supports FREQ=DAILY|WEEKLY|MONTHLY|YEARLY with optional INTERVAL, COUNT, UNTIL, BYDAY.
- */
 function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent) {
-  // Try to compute duration from DTSTART/DTEND to append end time on recurrences
   if (vevent) {
     const dtEndProp = getPropWithParams(vevent, 'DTEND');
     const dtStartProp = getPropWithParams(vevent, 'DTSTART');
@@ -408,7 +414,6 @@ function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent
     until = new Date(`${u.slice(0,4)}-${u.slice(4,6)}-${u.slice(6,8)}T00:00:00Z`);
   }
 
-  // BYDAY for WEEKLY: e.g. "MO,WE,FR"
   const byDayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
   const byDay = params['BYDAY']
     ? params['BYDAY'].split(',').map(d => byDayMap[d.replace(/[^A-Z]/g, '')]).filter(d => d !== undefined)
@@ -417,29 +422,24 @@ function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent
   const results = [];
   let current = new Date(dtStartMs);
   let iterations = 0;
-  const maxIterations = 500; // safety cap
+  const maxIterations = 500;
 
   while (iterations < maxIterations) {
     iterations++;
 
-    // Stop conditions
     if (until && current > until) break;
     if (count !== null && results.length >= count) break;
     if (current > windowEnd) break;
 
     if (current >= windowStart) {
       if (byDay && freq === 'WEEKLY') {
-        // For WEEKLY with BYDAY, emit each matching day in the current week
         const weekStart = new Date(current);
-        weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay()); // Sunday
+        weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
         for (const dow of byDay) {
           const day = new Date(weekStart);
           day.setUTCDate(weekStart.getUTCDate() + dow);
           if (day >= windowStart && day <= windowEnd) {
-            results.push({
-              eventDate: formatDate(day),
-              eventTime,
-            });
+            results.push({ eventDate: formatDate(day), eventTime });
           }
         }
       } else {
@@ -447,7 +447,6 @@ function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent
       }
     }
 
-    // Advance by frequency
     if (freq === 'DAILY') {
       current = new Date(current.getTime() + interval * 24 * 60 * 60 * 1000);
     } else if (freq === 'WEEKLY') {
@@ -459,7 +458,7 @@ function expandRRule(rrule, dtStartMs, eventTime, windowStart, windowEnd, vevent
       current = new Date(current);
       current.setUTCFullYear(current.getUTCFullYear() + interval);
     } else {
-      break; // unsupported frequency
+      break;
     }
   }
 
@@ -500,7 +499,6 @@ function parseDtstart(dtProp, dtEndProp) {
   const raw = typeof dtProp === 'string' ? dtProp : dtProp.value;
   const isUtc = typeof dtProp === 'object' ? dtProp.isUtc : raw.endsWith('Z');
 
-  // All-day: YYYYMMDD
   if (/^\d{8}$/.test(raw)) {
     const eventDate = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
     return { eventDate, eventTime: null, dtStartMs: new Date(eventDate + 'T00:00:00Z').getTime() };
@@ -511,7 +509,6 @@ function parseDtstart(dtProp, dtEndProp) {
 
   const [, yr, mo, dy, hh, mm] = dtMatch;
 
-  // Parse end time if available
   let endTimeStr = null;
   if (dtEndProp) {
     const endRaw = typeof dtEndProp === 'string' ? dtEndProp : dtEndProp.value;
@@ -537,14 +534,9 @@ function parseDtstart(dtProp, dtEndProp) {
     const dtStartMs = new Date(`${yr}-${mo}-${dy}T${hh}:${mm}:00Z`).getTime();
     const d = new Date(dtStartMs);
     const startStr = formatTime12(d.getUTCHours(), d.getUTCMinutes());
-    return {
-      eventDate: formatDate(d),
-      eventTime: buildTimeRange(startStr),
-      dtStartMs,
-    };
+    return { eventDate: formatDate(d), eventTime: buildTimeRange(startStr), dtStartMs };
   }
 
-  // Floating / TZID — treat wall-clock date literally
   const startStr = formatTime12(hh, mm);
   return {
     eventDate: `${yr}-${mo}-${dy}`,
