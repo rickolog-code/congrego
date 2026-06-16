@@ -53,70 +53,12 @@ export default function PostCard({ post }) {
   });
 
   const handleSpecialVote = async (vote) => {
-    const yesVotes = [...(post.yes_votes || [])];
-    const noVotes = [...(post.no_votes || [])];
-
-    if (vote === 'yes') {
-      if (!yesVotes.includes(user.email)) yesVotes.push(user.email);
-      const ni = noVotes.indexOf(user.email);
-      if (ni !== -1) noVotes.splice(ni, 1);
-    } else {
-      if (!noVotes.includes(user.email)) noVotes.push(user.email);
-      const yi = yesVotes.indexOf(user.email);
-      if (yi !== -1) yesVotes.splice(yi, 1);
+    const res = await base44.functions.invoke('castVote', { postId: post.id, vote });
+    if (res?.data?.voteDone) {
+      queryClient.invalidateQueries({ queryKey: ['circle-members'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
     }
-
-    await base44.entities.Post.update(post.id, { yes_votes: yesVotes, no_votes: noVotes });
     queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
-
-    // Check if vote kick threshold is reached (only for vote posts with a target)
-    if (post.post_type === 'vote' && post.vote_target_email && activeCircleId) {
-      const members = await base44.entities.CircleMember.filter({ circle_id: activeCircleId });
-      const hostMember = members.find(m => m.role === 'host');
-      const hostEmail = hostMember?.user_email;
-
-      // Calculate effective yes vote weight (host = 2, others = 1)
-      const yesWeight = yesVotes.reduce((sum, email) => sum + (email === hostEmail ? 2 : 1), 0);
-
-      // Total possible votes weight
-      const totalWeight = members.reduce((sum, m) => sum + (m.user_email === hostEmail ? 2 : 1), 0);
-
-      // Majority = more than half of total weight
-      const noWeight = noVotes.reduce((sum, email) => sum + (email === hostEmail ? 2 : 1), 0);
-      const votedWeight = yesWeight + noWeight;
-
-      if (yesWeight > totalWeight / 2) {
-        // Kick the target member
-        const targetMember = members.find(m => m.user_email === post.vote_target_email);
-        if (targetMember) {
-          await base44.entities.CircleMember.delete(targetMember.id);
-
-          // Update circle member count
-          const circle = (await base44.entities.Circle.filter({ id: activeCircleId }))[0];
-          if (circle) {
-            await base44.entities.Circle.update(activeCircleId, {
-              member_count: Math.max(0, (circle.member_count || 1) - 1),
-            });
-          }
-
-          // Remove this circle from the kicked user's circle_ids so RLS stops leaking data to them.
-          // We do this via a backend function call so we can act with service-role on another user's data.
-          await base44.functions.invoke('removeUserFromCircle', {
-            userEmail: post.vote_target_email,
-            circleId: activeCircleId,
-          }).catch(() => {});
-        }
-        // Delete the vote post
-        await base44.entities.Post.delete(post.id);
-        queryClient.invalidateQueries({ queryKey: ['circle-members'] });
-        queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
-        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-      } else if (noWeight > totalWeight / 2) {
-        // No-votes won — delete the post
-        await base44.entities.Post.delete(post.id);
-        queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
-      }
-    }
   };
 
   const handleDelete = async () => {

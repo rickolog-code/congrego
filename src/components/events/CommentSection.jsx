@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,7 +54,7 @@ export default function CommentSection({ postId }) {
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-semibold">{comment.author_name}</span>
                 <span className="text-[9px] text-muted-foreground">
-                  {comment.created_date ? format(new Date(comment.created_date), 'h:mm a') : ''}
+                  {comment.created_date ? formatDistanceToNow(new Date(comment.created_date), { addSuffix: true }) : ''}
                 </span>
               </div>
               <p className="text-xs mt-0.5">{comment.content}</p>
