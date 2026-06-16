@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
+import { ToastAction } from '@/components/ui/toast';
 import {
   ArrowLeft, LogOut, UserPlus, Plus, Copy, Check,
   Pencil, Trash2, Users, Crown, Loader2, Bell, CalendarDays,
@@ -185,7 +186,11 @@ export default function Settings() {
     refreshCircles();
     setTransferTarget(null);
     setShowMembers(false);
-    toast({ description: `${member.username || member.user_email} is now the host.` });
+    toast({
+      description: `${member.username || member.user_email} is now the host.`,
+      duration: 4000,
+      action: <ToastAction altText="Close">✕</ToastAction>,
+    });
   };
 
   const handleRemoveMember = async (member) => {
