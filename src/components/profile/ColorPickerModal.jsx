@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 export const THEME_COLORS = [
   { label: 'Red',    hex: '#EF4444' },
   { label: 'Orange', hex: '#F97316' },
-  { label: 'Gold',   hex: '#EAB308' },
+  { label: 'Green',  hex: '#22C55E' },
   { label: 'Yellow', hex: '#FDE047' },
   { label: 'Teal',   hex: '#14B8A6' },
   { label: 'Blue',   hex: '#3B82F6' },

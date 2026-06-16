@@ -44,14 +44,23 @@ Deno.serve(async (req) => {
         const timeMin = now.toISOString();
         const timeMax = new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Step 1: Get all calendars
-        const calListRes = await fetch(
-          'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250',
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const calListData = calListRes.ok ? await calListRes.json() : { items: [] };
-        const calendars = (calListData.items || []).filter(c => c.selected !== false);
-        const calendarIds = calendars.length > 0 ? calendars.map(c => c.id) : ['primary'];
+        // Step 1: Check approved calendar preferences
+        const userRecord = await base44.asServiceRole.entities.User.filter({ email: user.email }).catch(() => []);
+        const userPrefs = userRecord?.[0];
+        const approvedIds = userPrefs?.approvedGoogleCalendarIds;
+
+        // If user has saved preferences but selected nothing, skip sync
+        if (Array.isArray(approvedIds) && approvedIds.length === 0) {
+          continue; // no approved calendars — skip this user
+        }
+
+        let calendarIds;
+        if (Array.isArray(approvedIds) && approvedIds.length > 0) {
+          calendarIds = approvedIds;
+        } else {
+          // No prefs saved yet — default to nothing (prompt user to configure)
+          continue;
+        }
 
         // Step 2: Fetch all events from Google (unique by event ID)
         const allEventsById = new Map();

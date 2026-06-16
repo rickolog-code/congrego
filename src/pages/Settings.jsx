@@ -21,6 +21,7 @@ import PrivacyModeToggle from '@/components/settings/PrivacyModeToggle';
 import ProfileImagePicker from '@/components/profile/ProfileImagePicker';
 import ColorPickerModal from '@/components/profile/ColorPickerModal';
 import CalendarSyncModal from '@/components/settings/CalendarSyncModal';
+import ManageSyncedCalendarsModal from '@/components/settings/ManageSyncedCalendarsModal';
 
 export default function Settings() {
   const { user, activeCircle, activeCircleId, myMembership, memberships, refreshCircles, circles, switchCircle } = useCircle();
@@ -45,6 +46,7 @@ export default function Settings() {
   const [privacyMode, setPrivacyMode] = useState(myMembership?.privacy_mode || false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showManageCalendars, setShowManageCalendars] = useState(false);
 
   const isHost = myMembership?.role === 'host';
 
@@ -309,6 +311,25 @@ export default function Settings() {
         </div>
       )}
 
+      {/* Manage Synced Calendars — shown when calendar is connected */}
+      {calendarSynced && (
+        <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <CalendarDays className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold">Calendar Sync</p>
+            <p className="text-xs text-muted-foreground">Choose which calendars to sync</p>
+          </div>
+          <button
+            onClick={() => setShowManageCalendars(true)}
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
+          >
+            Manage
+          </button>
+        </div>
+      )}
+
       {/* Calendar Card */}
       {!calendarSynced && (
         <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
@@ -552,6 +573,13 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManageSyncedCalendarsModal
+        open={showManageCalendars}
+        onOpenChange={setShowManageCalendars}
+        user={user}
+        myMembership={myMembership}
+      />
 
       <CalendarSyncModal
         open={showCalendarSync}

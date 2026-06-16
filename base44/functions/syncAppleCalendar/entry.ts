@@ -136,6 +136,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No calendars found in this iCloud account.' }, { status: 400 });
     }
 
+    // Check approved calendar preferences
+    const userRecord = await base44.asServiceRole.entities.User.filter({ email: user.email }).catch(() => []);
+    const userPrefs = userRecord?.[0];
+    const approvedUrls = userPrefs?.approvedAppleCalendarUrls;
+
+    let filteredCalendarUrls;
+    if (Array.isArray(approvedUrls) && approvedUrls.length > 0) {
+      filteredCalendarUrls = calendarUrls.filter(url => approvedUrls.includes(url));
+    } else if (Array.isArray(approvedUrls) && approvedUrls.length === 0) {
+      // User saved empty prefs — sync nothing
+      return Response.json({ message: 'No approved calendars selected. Go to Settings → Manage Synced Calendars to choose calendars to sync.', newEvents: 0, updatedEvents: 0 });
+    } else {
+      // No prefs saved yet — sync nothing, prompt user
+      return Response.json({ message: 'No calendar preferences saved. Go to Settings → Manage Synced Calendars to choose calendars to sync.', newEvents: 0, updatedEvents: 0 });
+    }
+
     // Step 4: Fetch ALL events (no time-range filter so recurring masters are included)
     // Then expand them into occurrences within the next 60 days.
     const now = new Date();
@@ -143,7 +159,7 @@ Deno.serve(async (req) => {
 
     const allEvents = []; // { uid, summary, eventDate, eventTime, description, location }
 
-    for (const calUrl of calendarUrls) {
+    for (const calUrl of filteredCalendarUrls) {
       const reportRes = await caldavRequest(calUrl, 'REPORT', 1,
         `<?xml version="1.0" encoding="utf-8"?>
 <C:calendar-query xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:">

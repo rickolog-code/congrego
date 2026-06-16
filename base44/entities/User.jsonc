@@ -4,36 +4,43 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      "default": "user"
+    },
+    "username": {
+      "type": "string"
+    },
+    "profile_image": {
+      "type": "string"
     },
     "circle_ids": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "All circle IDs the user belongs to (host or member), used for RLS"
+      }
     },
     "hosted_circle_ids": {
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "approvedGoogleCalendarIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
       },
-      "description": "Circle IDs where the user is the host"
+      "description": "Google Calendar IDs the user has approved for syncing"
     },
-    "username": {
-      "type": "string",
-      "description": "Global display name across all circles"
-    },
-    "profile_image": {
-      "type": "string",
-      "description": "Global profile image URL across all circles"
+    "approvedAppleCalendarUrls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Apple CalDAV calendar URLs the user has approved for syncing"
     }
-  },
-  "required": [
-    "role"
-  ]
+  }
 }

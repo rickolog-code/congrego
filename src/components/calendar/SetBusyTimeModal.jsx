@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format, eachDayOfInterval } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import TimePicker from './TimePicker';
 
@@ -21,11 +22,12 @@ export default function SetBusyTimeModal({ open, onOpenChange, onRequestDatePick
   const [timeEnd, setTimeEnd] = useState('');
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [busyTitle, setBusyTitle] = useState('');
   const [loading, setLoading] = useState(false);
 
   const reset = () => {
     setMode('single'); setSingleDate(null); setStartDate(null); setEndDate(null);
-    setAllDay(true); setTimeStart(''); setTimeEnd('');
+    setAllDay(true); setTimeStart(''); setTimeEnd(''); setBusyTitle('');
   };
 
   const handleSelectDate = async () => {
@@ -45,7 +47,7 @@ export default function SetBusyTimeModal({ open, onOpenChange, onRequestDatePick
     if (mode === 'single' && singleDate) {
       await base44.entities.CalendarEvent.create({
         circle_id: activeCircleId,
-        title: `[busy] ${authorName}`,
+        title: busyTitle.trim() ? busyTitle.trim() : `[busy] ${authorName}`,
         event_date: format(singleDate, 'yyyy-MM-dd'),
         creator_email: user.email,
         creator_name: authorName,
@@ -61,7 +63,7 @@ export default function SetBusyTimeModal({ open, onOpenChange, onRequestDatePick
       await Promise.all(days.map(day =>
         base44.entities.CalendarEvent.create({
           circle_id: activeCircleId,
-          title: `[busy] ${authorName}`,
+          title: busyTitle.trim() ? busyTitle.trim() : `[busy] ${authorName}`,
           event_date: format(day, 'yyyy-MM-dd'),
           creator_email: user.email,
           creator_name: authorName,
@@ -126,6 +128,17 @@ export default function SetBusyTimeModal({ open, onOpenChange, onRequestDatePick
               >
                 {dateLabel}
               </button>
+            </div>
+
+            {/* Optional title */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Title <span className="font-normal">(optional)</span></p>
+              <Input
+                value={busyTitle}
+                onChange={(e) => setBusyTitle(e.target.value)}
+                placeholder='e.g. "Work", "Travel"'
+                className="rounded-xl text-sm"
+              />
             </div>
 
             {/* All day / time */}

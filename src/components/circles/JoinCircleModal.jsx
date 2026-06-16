@@ -51,10 +51,12 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       return;
     }
 
+    const freshUser = await base44.auth.me();
     await base44.entities.CircleMember.create({
       circle_id: circle.id,
-      user_email: user.email,
-      username: user.full_name || user.email.split('@')[0],
+      user_email: freshUser.email,
+      username: freshUser.username || freshUser.full_name || freshUser.email.split('@')[0],
+      profile_image: freshUser.profile_image || '',
       role: 'member',
       availability: 'unset',
       theme_color: randomThemeColor(),
@@ -71,15 +73,14 @@ export default function JoinCircleModal({ open, onOpenChange }) {
       circle_ids: [...new Set([...existingCircleIds, circle.id])],
     });
 
-    // Small delay to let the auth update propagate before refreshing
-    await new Promise(r => setTimeout(r, 300));
-    await refreshCircles();
     switchCircle(circle.id);
-    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
     setLoading(false);
     setCode('');
     onOpenChange(false);
     navigate('/');
+    // Refresh in background after navigating so user isn't stuck
+    refreshCircles();
+    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
   };
 
   return (
