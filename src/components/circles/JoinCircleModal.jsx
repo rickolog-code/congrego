@@ -24,68 +24,71 @@ export default function JoinCircleModal({ open, onOpenChange }) {
     setLoading(true);
     setError('');
 
-    const circles = await base44.entities.Circle.filter({ invite_code: code.trim().toUpperCase() });
+    try {
+      const matchingCircles = await base44.entities.Circle.filter({ invite_code: code.trim().toUpperCase() });
 
-    if (circles.length === 0) {
-      setError('Invalid invite code.');
+      if (matchingCircles.length === 0) {
+        setError('Invalid invite code.');
+        setLoading(false);
+        return;
+      }
+
+      const circle = matchingCircles[0];
+
+      if (new Date(circle.invite_expires_at) < new Date()) {
+        setError('This invite code has expired.');
+        setLoading(false);
+        return;
+      }
+
+      const existing = await base44.entities.CircleMember.filter({
+        circle_id: circle.id,
+        user_email: user.email,
+      });
+
+      if (existing.length > 0) {
+        setError('You are already in this circle.');
+        setLoading(false);
+        return;
+      }
+
+      const freshUser = await base44.auth.me();
+
+      const existingMembers = await base44.entities.CircleMember.filter({ circle_id: circle.id });
+      const takenColors = existingMembers.map(m => m.theme_color).filter(Boolean);
+
+      await base44.entities.CircleMember.create({
+        circle_id: circle.id,
+        user_email: freshUser.email,
+        username: freshUser.username || freshUser.full_name || freshUser.email.split('@')[0],
+        profile_image: freshUser.profile_image || '',
+        role: 'member',
+        availability: 'unset',
+        theme_color: randomThemeColor(takenColors),
+      });
+
+      await base44.entities.Circle.update(circle.id, {
+        member_count: (circle.member_count || 1) + 1,
+      });
+
+      const currentUser = await base44.auth.me();
+      const existingCircleIds = currentUser.circle_ids || [];
+      await base44.auth.updateMe({
+        circle_ids: [...new Set([...existingCircleIds, circle.id])],
+      });
+
+      await refreshCircles();
+      switchCircle(circle.id);
       setLoading(false);
-      return;
-    }
+      setCode('');
+      onOpenChange(false);
+      navigate('/');
+      queryClient.invalidateQueries({ queryKey: ['circle-members'] });
 
-    const circle = circles[0];
-
-    if (new Date(circle.invite_expires_at) < new Date()) {
-      setError('This invite code has expired.');
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
-      return;
     }
-
-    const existing = await base44.entities.CircleMember.filter({
-      circle_id: circle.id,
-      user_email: user.email,
-    });
-
-    if (existing.length > 0) {
-      setError('You are already in this circle.');
-      setLoading(false);
-      return;
-    }
-
-    const freshUser = await base44.auth.me();
-
-    // Get existing member colors to avoid duplicates
-    const existingMembers = await base44.entities.CircleMember.filter({ circle_id: circle.id });
-    const takenColors = existingMembers.map(m => m.theme_color).filter(Boolean);
-
-    await base44.entities.CircleMember.create({
-      circle_id: circle.id,
-      user_email: freshUser.email,
-      username: freshUser.username || freshUser.full_name || freshUser.email.split('@')[0],
-      profile_image: freshUser.profile_image || '',
-      role: 'member',
-      availability: 'unset',
-      theme_color: randomThemeColor(takenColors),
-    });
-
-    await base44.entities.Circle.update(circle.id, {
-      member_count: (circle.member_count || 1) + 1,
-    });
-
-    // Keep circle_ids on the User in sync for RLS
-    const currentUser = await base44.auth.me();
-    const existingCircleIds = currentUser.circle_ids || [];
-    await base44.auth.updateMe({
-      circle_ids: [...new Set([...existingCircleIds, circle.id])],
-    });
-
-    switchCircle(circle.id);
-    setLoading(false);
-    setCode('');
-    onOpenChange(false);
-    navigate('/');
-    // Refresh in background after navigating so user isn't stuck
-    refreshCircles();
-    queryClient.invalidateQueries({ queryKey: ['circle-members'] });
   };
 
   return (
