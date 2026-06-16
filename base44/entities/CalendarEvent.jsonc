@@ -91,59 +91,13 @@
     "creator_email"
   ],
   "rls": {
-    "create": {
-      "data.circle_id": {
-        "$in": "{{user.data.circle_ids}}"
-      },
-      "data.creator_email": "{{user.email}}"
-    },
-    "read": {
-      "$or": [
-        {
-          "data.circle_id": {
-            "$in": "{{user.data.circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "create": null,
+    "read": null,
     "update": {
-      "$or": [
-        {
-          "data.creator_email": "{{user.email}}"
-        },
-        {
-          "data.circle_id": {
-            "$in": "{{user.data.hosted_circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "created_by_id": "{{user.id}}"
     },
     "delete": {
-      "$or": [
-        {
-          "data.creator_email": "{{user.email}}"
-        },
-        {
-          "data.circle_id": {
-            "$in": "{{user.data.hosted_circle_ids}}"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "created_by_id": "{{user.id}}"
     }
   }
 }
