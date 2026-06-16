@@ -141,6 +141,13 @@ export default function Settings() {
   const handleLeaveCircle = async () => {
     if (!myMembership) return;
 
+    // Update member_count BEFORE transferring host (host still has permission now)
+    if (activeCircle && isHost) {
+      await base44.entities.Circle.update(activeCircle.id, {
+        member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
+      });
+    }
+
     // If host is leaving, transfer host to a random other member
     if (isHost) {
       const otherMembers = members.filter(m => m.user_email !== user?.email);
@@ -148,18 +155,10 @@ export default function Settings() {
         const newHost = otherMembers[Math.floor(Math.random() * otherMembers.length)];
         await base44.entities.CircleMember.update(newHost.id, { role: 'host' });
         await base44.entities.Circle.update(activeCircleId, { host_email: newHost.user_email });
-        // Update new host's hosted_circle_ids
-        const newHostUser = await base44.auth.me().catch(() => null);
-        // We update our own record; the new host's RLS will sync on their next load
       }
     }
 
     await base44.entities.CircleMember.delete(myMembership.id);
-    if (activeCircle && isHost) {
-      await base44.entities.Circle.update(activeCircle.id, {
-        member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
-      });
-    }
     // Remove this circle from the user's circle_ids and hosted_circle_ids for RLS
     const currentUser = await base44.auth.me();
     const updatedCircleIds = (currentUser.circle_ids || []).filter(id => id !== activeCircleId);
