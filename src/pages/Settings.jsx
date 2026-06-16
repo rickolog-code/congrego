@@ -492,14 +492,16 @@ export default function Settings() {
         <Button variant="outline" className="w-full rounded-xl justify-start gap-2" onClick={() => setShowJoin(true)}>
           <UserPlus className="w-4 h-4" /> Join Circle
         </Button>
-        {activeCircle && !isHost && (
-          <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowLeaveConfirm(true)}>
-            <Trash2 className="w-4 h-4" /> Leave Circle
-          </Button>
-        )}
+        {/* Show Delete only when host is the sole member */}
         {activeCircle && isHost && members.length === 1 && (
           <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteConfirm(true)} disabled={deleting}>
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Circle & All Data
+          </Button>
+        )}
+        {/* Show Leave for non-hosts, OR for hosts when there are other members (host transfers then leaves) */}
+        {activeCircle && members.length > 1 && (
+          <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowLeaveConfirm(true)}>
+            <Trash2 className="w-4 h-4" /> Leave Circle
           </Button>
         )}
         <Separator />
