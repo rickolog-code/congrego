@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useCircle } from '@/lib/useCircleContext.jsx';
@@ -8,13 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { ToastAction } from '@/components/ui/toast';
 import {
   ArrowLeft, LogOut, UserPlus, Plus, Copy, Check,
-  Pencil, Trash2, Users, Crown, Loader2, Bell, CalendarDays,
+  Pencil, Trash2, Users, Crown, Loader2, Bell, CalendarDays, X,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import CreateCircleModal from '@/components/circles/CreateCircleModal';
 import JoinCircleModal from '@/components/circles/JoinCircleModal';
@@ -50,6 +49,14 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showManageCalendars, setShowManageCalendars] = useState(false);
+  const [transferNotice, setTransferNotice] = useState(null);
+
+  // Auto-dismiss transfer notice after 4 seconds
+  useEffect(() => {
+    if (!transferNotice) return;
+    const timer = setTimeout(() => setTransferNotice(null), 4000);
+    return () => clearTimeout(timer);
+  }, [transferNotice]);
 
   const isHost = myMembership?.role === 'host';
 
@@ -61,7 +68,6 @@ export default function Settings() {
 
   const handleUpdateUsername = async () => {
     if (!newUsername.trim()) return;
-    // Store on User entity (global) and sync to all circle memberships
     await base44.auth.updateMe({ username: newUsername.trim() });
     await Promise.all(
       memberships.map(m => base44.entities.CircleMember.update(m.id, { username: newUsername.trim() }))
@@ -79,7 +85,6 @@ export default function Settings() {
   };
 
   const handleSelectProfileImage = async (url) => {
-    // Store on User entity (global) and sync to all circle memberships
     await base44.auth.updateMe({ profile_image: url });
     await Promise.all(
       memberships.map(m => base44.entities.CircleMember.update(m.id, { profile_image: url }))
@@ -142,14 +147,12 @@ export default function Settings() {
   const handleLeaveCircle = async () => {
     if (!myMembership) return;
 
-    // Update member_count BEFORE transferring host (host still has permission now)
     if (activeCircle && isHost) {
       await base44.entities.Circle.update(activeCircle.id, {
         member_count: Math.max(0, (activeCircle.member_count || 1) - 1),
       });
     }
 
-    // If host is leaving, transfer host to a random other member
     if (isHost) {
       const otherMembers = members.filter(m => m.user_email !== user?.email);
       if (otherMembers.length > 0) {
@@ -160,7 +163,6 @@ export default function Settings() {
     }
 
     await base44.entities.CircleMember.delete(myMembership.id);
-    // Remove this circle from the user's circle_ids and hosted_circle_ids for RLS
     const currentUser = await base44.auth.me();
     const updatedCircleIds = (currentUser.circle_ids || []).filter(id => id !== activeCircleId);
     const updatedHostedIds = (currentUser.hosted_circle_ids || []).filter(id => id !== activeCircleId);
@@ -168,7 +170,6 @@ export default function Settings() {
       circle_ids: updatedCircleIds,
       hosted_circle_ids: updatedHostedIds,
     });
-    // Immediately switch to another circle (or null) so the UI doesn't show the left circle
     const nextCircle = circles.find(c => c.id !== activeCircleId);
     switchCircle(nextCircle ? nextCircle.id : null);
     refreshCircles();
@@ -186,11 +187,7 @@ export default function Settings() {
     refreshCircles();
     setTransferTarget(null);
     setShowMembers(false);
-    toast({
-      description: `${member.username || member.user_email} is now the host.`,
-      duration: 4000,
-      action: <ToastAction altText="Close">✕</ToastAction>,
-    });
+    setTransferNotice(`${member.username || member.user_email} is now the host.`);
   };
 
   const handleRemoveMember = async (member) => {
@@ -250,6 +247,28 @@ export default function Settings() {
         <h1 className="text-xl font-extrabold">Settings</h1>
       </div>
 
+      {/* Transfer Notice Banner */}
+      <AnimatePresence>
+        {transferNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center justify-between gap-3 px-4 py-3 bg-card border border-border rounded-2xl shadow-sm"
+          >
+            <p className="text-sm font-medium">{transferNotice}</p>
+            <button
+              onClick={() => setTransferNotice(null)}
+              className="p-1 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Profile Section */}
       <div className="bg-card rounded-2xl border border-border p-4 space-y-4">
         <h3 className="text-sm font-bold text-muted-foreground">Profile</h3>
@@ -301,7 +320,6 @@ export default function Settings() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">{user?.email}</p>
-            {/* Color swatch bubble */}
             <button
               onClick={() => setShowColorPicker(true)}
               className="mt-2 flex items-center gap-2 group"
@@ -314,7 +332,6 @@ export default function Settings() {
             </button>
           </div>
         </div>
-
       </div>
 
       {/* Notifications Card */}
@@ -336,7 +353,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Manage Synced Calendars — shown when calendar is connected */}
+      {/* Manage Synced Calendars */}
       {calendarSynced && (
         <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -395,7 +412,6 @@ export default function Settings() {
             {isHost && <Crown className="w-4 h-4 text-amber-500" />}
           </div>
           <div className="flex items-center gap-3">
-            {/* Circle image — clickable for host */}
             {isHost ? (
               <button onClick={() => setShowCircleImagePicker(true)} className="relative group">
                 {activeCircle.image_url ? (
@@ -443,7 +459,6 @@ export default function Settings() {
                   )}
                 </div>
               )}
-
             </div>
           </div>
 
@@ -497,13 +512,11 @@ export default function Settings() {
         <Button variant="outline" className="w-full rounded-xl justify-start gap-2" onClick={() => setShowJoin(true)}>
           <UserPlus className="w-4 h-4" /> Join Circle
         </Button>
-        {/* Show Delete only when host is the sole member */}
         {activeCircle && isHost && members.length === 1 && (
           <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowDeleteConfirm(true)} disabled={deleting}>
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete Circle & All Data
           </Button>
         )}
-        {/* Show Leave for non-hosts, OR for hosts when there are other members (host transfers then leaves) */}
         {activeCircle && members.length > 1 && (
           <Button variant="outline" className="w-full rounded-xl justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setShowLeaveConfirm(true)}>
             <Trash2 className="w-4 h-4" /> Leave Circle
