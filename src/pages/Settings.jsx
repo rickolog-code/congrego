@@ -247,27 +247,30 @@ export default function Settings() {
         <h1 className="text-xl font-extrabold">Settings</h1>
       </div>
 
-      {/* Transfer Notice Banner */}
-      <AnimatePresence>
-        {transferNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center justify-between gap-3 px-4 py-3 bg-card border border-border rounded-2xl shadow-sm"
-          >
-            <p className="text-sm font-medium">{transferNotice}</p>
-            <button
-              onClick={() => setTransferNotice(null)}
-              className="p-1 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    {/* Transfer Notice - Fixed top banner */}
+<AnimatePresence>
+  {transferNotice && (
+    <motion.div
+      initial={{ opacity: 0, y: -80 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -80 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none"
+    >
+      <div className="flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-2xl shadow-lg pointer-events-auto max-w-sm w-full">
+        <Check className="w-4 h-4 text-primary flex-shrink-0" />
+        <p className="text-sm font-medium flex-1">{transferNotice}</p>
+        <button
+          onClick={() => setTransferNotice(null)}
+          className="p-1 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Profile Section */}
       <div className="bg-card rounded-2xl border border-border p-4 space-y-4">
